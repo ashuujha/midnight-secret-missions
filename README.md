@@ -14,7 +14,11 @@ The [mobile preview](screenshots/mobile-preview.png) shows the responsive first 
 
 [Play Secret Missions on Vercel](https://midnight-secret-missions.vercel.app/). The public world and leaderboard load from the deployed Midnight Preprod contract.
 
+The dedicated Secret Missions X profile is being created. Its link will be added here once public.
+
 To submit moves, connect a funded Preprod Lace wallet, receive a mission, and make five public moves before claiming. Lace 2.4 may offer only a Local proof server; in that case, the wallet needs a prover on the player's own `localhost:6300`. The hosted site and Render prover do not change that wallet setting.
+
+The site starts waking the hosted prover when the page opens and caches each circuit's downloaded proving files for the current tab. This reduces the wait for repeat visits. The free Render instance still sleeps after inactivity, and proof computation, Lace balancing, and Preprod confirmation still take time. Keep the tab open until the result appears. [Render documents its free-service wake-up delay](https://render.com/docs/free#spinning-down-on-idle).
 
 ## Contract Address
 
@@ -83,9 +87,9 @@ npm test
 npm run build
 ```
 
-The contract suite covers mission commitment, ordered visits, successful scoring, wrong routes, mission swapping, duplicate claims, and invalid actions.
+The eight-test suite covers mission commitment, ordered visits, successful scoring, wrong routes, mission swapping, duplicate claims, invalid actions, and proving-asset cache behavior.
 
-![Six passing contract tests](screenshots/test-output.png)
+![Six passing contract tests from the first test run](screenshots/test-output.png)
 
 ## CI/CD
 
@@ -106,8 +110,16 @@ The command records the new address locally. Verify the contract with the Prepro
 
 See [PROPOSAL.md](PROPOSAL.md) for the product, privacy rationale, data model, and Mainnet feasibility.
 
-## Development Status
+## Demo Video
 
-- Contract compilation, six local tests, and production build pass.
-- The Preprod contract is deployed and visible to the indexer; the live Vercel site serves the board and proving assets. A full wallet gameplay transaction test is still required.
-- The [public repository](https://github.com/ashuujha/midnight-secret-missions), more than 10 meaningful commits, and passing CI badge are ready.
+A one-minute recording of the **Secret Missions** flow is still needed. Show Lace connecting, a private mission being assigned, five public visits, a successful claim and leaderboard point, and the Preprod transaction result. The earlier Midnight Private Counter video documents a different project and is not this game's demo.
+
+## Submission Checklist
+
+- ✓ [Public GitHub repository](https://github.com/ashuujha/midnight-secret-missions) with README, setup, usage, privacy model, and proposal.
+- ✓ [Live Vercel demo](https://midnight-secret-missions.vercel.app/) and the Preprod contract address above; the contract is visible to the indexer.
+- ✓ CI workflow runs on pushes and pull requests; the badge above links to its status.
+- ✗ Dedicated product X profile: being created; add its public link above.
+- ✓ At least 15 commits in the product repository.
+- ✗ One-minute Secret Missions demo video: record and add the link here.
+- ✗ Full live wallet flow: a successful join, five visits, and claim on Preprod have not yet been verified. The contract's six gameplay tests pass locally.
