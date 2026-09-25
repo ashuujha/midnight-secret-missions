@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Compile, test, and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Compact compiler
+        env:
+          COMPACT_UNMANAGED_INSTALL: ${{ runner.temp }}/compact-bin
+        run: |
+          curl --fail --location --silent --show-error \
+            https://github.com/midnightntwrk/compact/releases/download/compact-v0.5.2/compact-installer.sh \
+            --output "$RUNNER_TEMP/compact-installer.sh"
+          sh "$RUNNER_TEMP/compact-installer.sh"
+          echo "$COMPACT_UNMANAGED_INSTALL" >> "$GITHUB_PATH"
+          "$COMPACT_UNMANAGED_INSTALL/compact" update 0.31.1
+      - name: Compile contract
+        run: npm run compile
+      - name: Test contract
+        run: npm test
+      - name: Build dApp
+        run: npm run build
+      - name: Typecheck deployment script
+        run: npm run typecheck:deploy
