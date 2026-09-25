@@ -6,13 +6,15 @@
 
 **Release status:** Secret Trail Level 1 is deployed on Midnight Preprod and served from [Vercel](https://midnight-secret-trail.vercel.app/). The contract is reachable through the Preprod indexer. A complete two-wallet challenge round has not yet been verified on-chain.
 
-![Secret Trail desktop UI on Vercel](screenshots/secret-trail-desktop.png)
+![Secret Trail card table in practice mode](screenshots/secret-trail-desktop.png)
 
-[Mobile UI screenshot](screenshots/secret-trail-mobile.png) · Both captures show the deployed Vercel interface.
+[Mobile card table](screenshots/secret-trail-mobile.png) · [Dark theme](screenshots/secret-trail-dark.png). These interface captures show the explicitly labelled local practice mode; they are not evidence of on-chain transactions.
 
 ## Live Demo
 
 [Play Secret Trail](https://midnight-secret-trail.vercel.app/). The public board reads the live V2 Preprod contract. To submit wallet transactions with Lace, follow the proof-server instructions below.
+
+**No wallet yet?** Choose **Practice with Miso** to learn the game against a local cat opponent. Practice moves and points stay in the current tab and never generate a ZK proof or submit a transaction. Switch to **Live table** for the real Preprod game.
 
 A dedicated Secret Trail product X profile and a one-minute video of its full wallet flow have not been published yet.
 
@@ -32,6 +34,22 @@ Each player receives one of eight private three-stop routes through Museum, Cafe
 Other registered players can watch a run after its first move and spend one of their three challenge tokens to challenge it. The runner then has a 20-minute deadline to finish five moves and prove the route. A valid proof gives the runner one point and burns the challenger's staked token. If the runner forfeits or misses the deadline, the challenger gets one point and their token back. Any registered player may settle an expired challenge for the original challenger. A settled player can start a fresh round with a new private mission and salt.
 
 Challenge tokens and points have **no monetary value**. Level 1 is implemented here. Levels 2–4—longer routes, extra decoys, time constraints, and branching missions—are planned, not playable yet.
+
+### Playing at the card table
+
+1. Choose **Live table**, connect Lace, return to the table and click **Deal me in**. Approve the transaction to commit your mission.
+2. Read the three private location cards under **The secret bit**. Use **Hide / Peek** if someone is looking at your screen.
+3. Select a location card from your hand and click **Play [location]**. Each visit becomes public only after the wallet transaction is confirmed. Complete the three secret stops in order and add two other visits, for exactly five moves.
+4. Click **Prove it. Take the point.** A valid proof earns one point. **Deal next round** gives you a fresh mission after the run settles.
+5. In **The clubhouse**, watch other real players and **Call bluff** to stake a token. Confirming the challenge starts their proof deadline. **Fold this round** also asks for confirmation before ending your run.
+
+Every player has the same five-move budget and the same five reusable location cards; their display order is shuffled on each deal. This card-table version keeps Secret Trail's committed-route rules: location cards are not removed from another player's hand, and rounds award points rather than declaring a last-card winner. Real players make their moves independently; there is no turn-based lobby or shared draw pile in this contract.
+
+The light theme is the default. The header provides a persistent light/dark toggle and optional original arcade sound effects (off by default). Card animations respect reduced-motion settings. The cat illustrations and location art are original SVGs; the font is self-hosted with its licence in `public/fonts/OFL.txt`.
+
+### Practice with Miso
+
+Practice deals a random mission immediately and checks the same ordered-route rule locally. Miso challenges you after your third move and demonstrates both challenge outcomes across rounds. The banner, score and result messages label this as practice. Practice scores never enter the live leaderboard, and refreshing the page resets the practice game.
 
 ## Privacy Model
 
@@ -71,7 +89,7 @@ EOF
 npm run dev
 ```
 
-Open the Vite URL, connect Lace, receive a mission, make five visits, and claim a point. For two-player testing, use distinct browser profiles and wallets to issue a challenge between visits. A wallet transaction is required for every visit; keep the tab open through proof generation, Lace approval, and Preprod confirmation.
+Open the Vite URL. Try **Practice with Miso** immediately, or choose **Live table**, connect Lace, click **Deal me in**, play five cards, and prove your route. For two-player testing, use distinct browser profiles and wallets to issue a challenge between visits. A wallet transaction is required for every visit; keep the tab open through proof generation, Lace approval, and Preprod confirmation.
 
 The app can also deploy a new contract from its **Deploy with Lace** button in local development when `VITE_CONTRACT_ADDRESS` is unset. After deployment, record the address and reload. Do not reuse the V1 address. Alternatively, `npm run deploy:preprod` uses the [deployment script](deploy/deploy.ts) and a separately funded Preprod wallet; its ignored `.midnight-state.json` contains recovery data and must stay private.
 
@@ -85,7 +103,7 @@ npm run build
 npm run typecheck:deploy
 ```
 
-The suite checks the earlier contract, the new challenge and replay rules, and proving-asset caching. `npm run check` recompiles the new contract and runs all of these checks.
+The 24-test suite checks the earlier contract, the challenge and replay rules, proving-asset caching, UI route parity with the deployed circuit, and practice wins, losses, token settlement and round resets. Browser checks also cover card selection, mission hide/peek, confirmation dialogs, wallet-unavailable messages, theme/sound preferences and responsive layouts from 320px to 1440px. `npm run check` recompiles the new contract and runs all of these checks.
 
 ## CI/CD
 

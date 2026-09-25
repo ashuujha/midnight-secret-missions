@@ -1,266 +1,1384 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CONTRACT_ADDRESS, MIDNIGHT_NETWORK, useMidnight } from './hooks/useMidnight';
-import type { GameAction, GameProfile, GameSnapshot, TransactionResult, TransactionStage } from './midnight/game';
-import { friendlyCircuitError } from './utils/errors';
+import { useEffect, useRef, useState } from 'react';
+import { CONTRACT_ADDRESS, MIDNIGHT_NETWORK } from './hooks/useMidnight';
+import { configured, useLiveGame } from './hooks/useLiveGame';
+import type { GameAction, Player } from './midnight/game';
+import {
+  Cat,
+  CardBack,
+  LocationCard,
+  PlaceArt,
+  type CatMood,
+} from './components/GameArt';
+import { Dialog } from './components/Dialog';
+import {
+  PLACES,
+  ROUTES,
+  dealPractice,
+  practiceAction,
+  routeProgress,
+  shuffleHand,
+  type PracticeGame,
+} from './game/table';
+import { playSound, type Sound } from './game/sound';
 
-const PLACES = [
-  { name: 'Museum', icon: '◇', tag: 'GALLERY', description: 'Blend with the crowd.' },
-  { name: 'Cafe', icon: '☕', tag: 'CORNER', description: 'Pause for a coffee.' },
-  { name: 'Stadium', icon: '✦', tag: 'ARENA', description: 'Join the noise.' },
-  { name: 'Park', icon: '❋', tag: 'GARDEN', description: 'Take the long way.' },
-  { name: 'Mall', icon: '◈', tag: 'SHOPS', description: 'Lose the watchers.' },
-] as const;
-
-const ROUTES = [
-  [0, 1, 2], [1, 4, 3], [2, 0, 3], [3, 2, 1],
-  [0, 4, 1], [1, 2, 3], [2, 3, 0], [4, 0, 2],
-] as const;
-
-const short = (value: string) => `${value.slice(0, 7)}…${value.slice(-5)}`;
-const configured = /^[0-9a-fA-F]{64}$/.test(CONTRACT_ADDRESS);
-
-function matchedStops(visits: number[], route: readonly number[]): number {
-  let step = 0;
-  for (const visit of visits) if (visit === route[step]) step += 1;
-  return step;
+const short = (value: string) => `${value.slice(0, 6)}…${value.slice(-4)}`;
+const clock = (deadline: number | null, now: number) => {
+  const seconds = Math.max(0, Math.ceil(((deadline ?? now) - now) / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+};
+const randomMission = () =>
+  crypto.getRandomValues(new Uint8Array(1))[0] % ROUTES.length;
+function preference(key: string, fallback: string) {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+function storePreference(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* Preferences are optional. */
+  }
 }
 
-const minutesLeft = (deadline: number | null, now: number) =>
-  deadline === null ? '—' : `${Math.max(0, Math.ceil((deadline - now) / 60_000))} min`;
-
+type Modal = 'rules' | 'privacy' | 'wallet' | 'forfeit' | null;
 export default function App() {
-  const wallet = useMidnight();
-  const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null);
-  const [snapshotError, setSnapshotError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<GameProfile | null>(null);
-  const [phase, setPhase] = useState<'idle' | 'preparing' | TransactionStage>('idle');
-  const [actionLabel, setActionLabel] = useState('');
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [result, setResult] = useState<TransactionResult | null>(null);
-  const [deployedAddress, setDeployedAddress] = useState<string | null>(null);
-  const [now, setNow] = useState(Date.now());
-
-  const refresh = useCallback(async () => {
-    if (!configured) return;
-    try {
-      const { readGameSnapshot } = await import('./midnight/game');
-      const next = await readGameSnapshot(CONTRACT_ADDRESS, MIDNIGHT_NETWORK);
-      setSnapshot(next);
-      setSnapshotError(null);
-    } catch (error) {
-      setSnapshotError(error instanceof Error ? error.message : 'Could not load the public game board.');
-    }
-  }, []);
+  const live = useLiveGame();
+  const { wallet } = live;
+  const [mode, setMode] = useState<'live' | 'practice'>('live');
+  const [practice, setPractice] = useState<PracticeGame | null>(null);
+  const [theme, setTheme] = useState(() =>
+    preference('secret-trail:theme', 'light') === 'dark' ? 'dark' : 'light',
+  );
+  const [sound, setSound] = useState(
+    () => preference('secret-trail:sound', 'off') === 'on',
+  );
+  const [modal, setModal] = useState<Modal>(null);
+  const [challengeTarget, setChallengeTarget] = useState<Player | null>(null);
+  const [hand, setHand] = useState(() => shuffleHand());
+  const [deal, setDeal] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [peek, setPeek] = useState(true);
+  const [activeTab, setActiveTab] = useState<'trails' | 'scores'>('trails');
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const practiceLock = useRef(false);
+  const soundEnabled = useRef(sound);
 
   useEffect(() => {
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), 15_000);
-    return () => window.clearInterval(timer);
-  }, [refresh]);
-
+    document.documentElement.dataset.theme = theme;
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', theme === 'dark' ? '#222b29' : '#f8f5ed');
+    storePreference('secret-trail:theme', theme);
+  }, [theme]);
   useEffect(() => {
-    if (!import.meta.env.VITE_PROOF_SERVER_URL) return;
-    // Wake Render's sleeping free instance while the player reads the game.
-    void import('./midnight/prover-readiness').then(({ warmProofServer }) =>
-      warmProofServer().catch(() => undefined));
-  }, []);
-
+    soundEnabled.current = sound;
+    storePreference('secret-trail:sound', sound ? 'on' : 'off');
+  }, [sound]);
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
-    return () => window.clearInterval(timer);
-  }, []);
+    if (live.busy) setStartedAt(Date.now());
+    else setStartedAt(null);
+  }, [live.busy]);
 
-  useEffect(() => {
-    let active = true;
-    if (!wallet.address || !configured) { setProfile(null); return; }
-    void import('./midnight/game').then(({ loadProfile }) => {
-      if (active) setProfile(loadProfile(wallet.address!, CONTRACT_ADDRESS));
-    });
-    return () => { active = false; };
-  }, [wallet.address]);
-
-  const player = snapshot?.players.find((entry) => entry.id === profile?.id);
-  const route = profile ? ROUTES[profile.mission] : null;
-  const matched = player && route ? matchedStops(player.visits, route) : 0;
-  const decoysUsed = player ? player.visits.length - matched : 0;
-  const decoysLeft = Math.max(0, 2 - decoysUsed);
-  const routeStillPossible = !!player && player.visits.length + (3 - matched) <= 5;
-  const challengeExpired = !!player && player.challengeStatus === 1 &&
-    player.challengeDeadline !== null && now >= player.challengeDeadline;
-  const readyToClaim = !!player && player.runStatus === 0 && matched === 3 &&
-    player.visits.length === 5 && !challengeExpired;
-  const busy = phase !== 'idle';
-  const canPlay = wallet.status === 'connected' && !!wallet.connectedAPI && configured && !!snapshot && !busy;
-
-  useEffect(() => {
-    if (wallet.status !== 'connected' || !configured) return;
-    const circuit = !player ? 'join' : player.runStatus !== 0 ? 'nextRound'
-      : player.visits.length >= 4 ? 'claim' : 'visit';
-    void import('./midnight/game').then(({ prefetchGameCircuit }) =>
-      prefetchGameCircuit(circuit).catch(() => undefined));
-  }, [wallet.status, player?.visits.length, player?.runStatus]);
-
-  useEffect(() => {
-    if (!player || player.challengeTokens < 1 || !snapshot?.players.some((entry) =>
-      entry.id !== player.id && entry.runStatus === 0 && entry.visits.length > 0 && entry.challengeStatus === 0)) return;
-    void import('./midnight/game').then(({ prefetchGameCircuit }) =>
-      prefetchGameCircuit('challenge').catch(() => undefined));
-  }, [player?.id, player?.challengeTokens, snapshot]);
-
-  const perform = async (action: GameAction, label: string) => {
-    if (!wallet.connectedAPI || !wallet.address || !configured || busy) return;
-    setActionError(null);
-    setResult(null);
-    setPhase('preparing');
-    setActionLabel(label);
-    try {
-      const game = await import('./midnight/game');
-      let current = profile;
-      if (action.kind === 'join' && !current) {
-        current = game.createProfile();
-        game.saveProfile(wallet.address, CONTRACT_ADDRESS, current);
-        setProfile(current);
-      }
-      if (!current) throw new Error('Your private mission was not found in this browser. Join a new round.');
-      if (action.kind === 'nextRound') {
-        current = game.nextRoundProfile(current);
-        game.saveProfile(wallet.address, CONTRACT_ADDRESS, current);
-        setProfile(current);
-      }
-      const submitted = await game.callGameCircuit(
-        wallet.connectedAPI, wallet.networkId, CONTRACT_ADDRESS, current, action,
-        setPhase,
-      );
-      setResult(submitted);
-      await refresh();
-      window.setTimeout(() => void refresh(), 4_000);
-      void wallet.refreshDustBalance();
-    } catch (error) {
-      setActionError(friendlyCircuitError(error, wallet.networkId));
-    } finally {
-      setPhase('idle');
+  const isPractice = mode === 'practice';
+  const player = isPractice ? practice?.player : live.player;
+  const route = isPractice
+    ? practice
+      ? ROUTES[practice.mission]
+      : null
+    : live.route;
+  const progress = routeProgress(player?.visits ?? [], route ?? []);
+  const expired =
+    !!player &&
+    player.challengeStatus === 1 &&
+    player.challengeDeadline !== null &&
+    live.now >= player.challengeDeadline;
+  const canAct = isPractice || live.canPlay;
+  const canVisit =
+    canAct &&
+    !!player &&
+    player.runStatus === 0 &&
+    player.visits.length < 5 &&
+    !expired;
+  const canClaim =
+    canAct &&
+    !!player &&
+    player.runStatus === 0 &&
+    progress.complete &&
+    !expired;
+  const settled = !!player && player.runStatus !== 0;
+  const opponents = isPractice
+    ? practice
+      ? [practice.bot]
+      : []
+    : (live.snapshot?.players.filter((p) => p.id !== live.player?.id) ?? []);
+  const allPlayers = isPractice
+    ? practice
+      ? [practice.player, practice.bot]
+      : []
+    : (live.snapshot?.players ?? []);
+  const scores = [...allPlayers]
+    .filter((p) => p.score > 0)
+    .sort((a, b) => b.score - a.score);
+  const mood: CatMood =
+    player?.runStatus === 1
+      ? 'happy'
+      : player?.runStatus === 2 || (player && !progress.possible)
+        ? 'panic'
+        : player?.challengeStatus === 1
+          ? 'watching'
+          : 'smug';
+  const catLine =
+    player?.runStatus === 1
+      ? 'Proof served. Ego damaged.'
+      : player?.runStatus === 2
+        ? 'We do not talk about that round.'
+        : player && !progress.possible
+          ? 'Bestie. The math is not mathing.'
+          : player?.challengeStatus === 1
+            ? 'That is a suspicious amount of walking.'
+            : selected !== null
+              ? `${PLACES[selected].name}? Interesting alibi.`
+              : 'I trust you. That was a lie.';
+  const cue = (value: Sound) => {
+    if (soundEnabled.current) playSound(value);
+  };
+  const redeal = () => {
+    setHand(shuffleHand());
+    setDeal((d) => d + 1);
+    setSelected(null);
+    setPeek(true);
+    cue('deal');
+  };
+  const switchMode = (next: 'live' | 'practice') => {
+    if (live.busy) return;
+    setMode(next);
+    setSelected(null);
+    setChallengeTarget(null);
+    if (next === 'practice' && !practice) {
+      setPractice(dealPractice(randomMission()));
+      redeal();
     }
   };
-
-  const deployLocally = async () => {
-    if (!wallet.connectedAPI || busy || !import.meta.env.DEV) return;
-    setActionError(null);
-    setPhase('preparing');
-    setActionLabel('Deploying game contract');
-    try {
-      const { deployGameContract } = await import('./midnight/game');
-      const address = await deployGameContract(wallet.connectedAPI, wallet.networkId, setPhase);
-      localStorage.setItem('secret-trail-dev-contract', address);
-      setDeployedAddress(address);
-    } catch (error) {
-      setActionError(friendlyCircuitError(error, wallet.networkId));
-    } finally {
-      setPhase('idle');
+  const act = async (action: GameAction, label: string) => {
+    if (isPractice) {
+      if (practiceLock.current) return;
+      practiceLock.current = true;
+      try {
+        if (action.kind === 'join' || action.kind === 'nextRound') {
+          setPractice(dealPractice(randomMission(), practice ?? undefined));
+          redeal();
+        } else if (practice) {
+          const next = practiceAction(practice, action, Date.now());
+          if (next === practice) return;
+          setPractice(next);
+          setSelected(null);
+          cue(
+            action.kind === 'claim'
+              ? 'win'
+              : action.kind === 'challenge'
+                ? 'challenge'
+                : action.kind === 'forfeit'
+                  ? 'oops'
+                  : next.player.challengeStatus === 1 &&
+                      practice.player.challengeStatus === 0
+                    ? 'challenge'
+                    : 'play',
+          );
+        }
+      } finally {
+        practiceLock.current = false;
+      }
+      return;
     }
+    const success = await live.perform(action, label);
+    if (success) {
+      setSelected(null);
+      if (action.kind === 'join' || action.kind === 'nextRound') redeal();
+      else
+        cue(
+          action.kind === 'claim'
+            ? 'win'
+            : action.kind === 'challenge'
+              ? 'challenge'
+              : action.kind === 'forfeit'
+                ? 'oops'
+                : 'play',
+        );
+    } else cue('oops');
   };
-
-  const leaderboard = useMemo(() => snapshot?.players.filter((entry) => entry.score > 0) ?? [], [snapshot]);
-  const otherPlayers = useMemo(() => snapshot?.players.filter((entry) => entry.visits.length > 0).slice(0, 12) ?? [], [snapshot]);
+  const join = () => {
+    if (!isPractice && wallet.status !== 'connected') {
+      setModal('wallet');
+      return;
+    }
+    void act({ kind: 'join' }, 'Dealing your secret mission');
+  };
+  const playerName = (entry: Player) =>
+    entry.id === player?.id
+      ? 'You'
+      : entry.id === 'miso'
+        ? 'Miso'
+        : `Player ${entry.id.slice(0, 5)}`;
+  const canChallenge = (entry: Player) =>
+    canAct &&
+    !!player &&
+    player.id !== entry.id &&
+    player.challengeTokens > 0 &&
+    entry.runStatus === 0 &&
+    entry.visits.length > 0 &&
+    entry.challengeStatus === 0;
+  const canResolve = (entry: Player) =>
+    canAct &&
+    !!player &&
+    entry.challengeStatus === 1 &&
+    entry.challengeDeadline !== null &&
+    live.now >= entry.challengeDeadline;
 
   return (
-    <div className="shell">
-      <header className="topbar">
-        <a className="logo" href="#top" aria-label="Secret Trail home"><span className="logo-mark">✧</span><span>SECRET<span>TRAIL</span></span></a>
-        <nav aria-label="Main navigation"><a href="#play">Play</a><a href="#challenges">Challenge</a><a href="#leaderboard">Leaderboard</a><a href="#privacy">Privacy</a></nav>
-        <span className="network-badge"><i /> MIDNIGHT {MIDNIGHT_NETWORK.toUpperCase()}</span>
+    <div className="app-shell">
+      <a href="#game" className="skip-link">
+        Skip to game
+      </a>
+      <header className="site-header">
+        <a className="wordmark" href="#top" aria-label="Secret Trail home">
+          <span className="brand-cat">
+            <Cat />
+          </span>
+          <span>
+            secret<span>trail.</span>
+          </span>
+        </a>
+        <nav aria-label="Main navigation">
+          <a href="#game">Play the game</a>
+          <button onClick={() => setModal('rules')}>How to play</button>
+          <a href="#clubhouse">The clubhouse</a>
+        </nav>
+        <div className="header-controls">
+          <button
+            className="setting-button"
+            aria-label={sound ? 'Mute sound effects' : 'Enable sound effects'}
+            aria-pressed={sound}
+            onClick={() => {
+              setSound(!sound);
+              if (!sound) playSound('deal');
+            }}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              aria-hidden="true"
+            >
+              <path d="M4 9h4l5-4v14l-5-4H4Z" />
+              {sound ? (
+                <path d="M16 8q5 4 0 8m3-12q9 8 0 16" />
+              ) : (
+                <path d="m17 9 5 6m0-6-5 6" />
+              )}
+            </svg>
+            <span>Sound {sound ? 'on' : 'off'}</span>
+          </button>
+          <button
+            className="setting-button"
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+            aria-pressed={theme === 'dark'}
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              aria-hidden="true"
+            >
+              {theme === 'light' ? (
+                <>
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 1v3m0 16v3M1 12h3m16 0h3M4 4l2 2m12 12 2 2M4 20l2-2M18 6l2-2" />
+                </>
+              ) : (
+                <path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z" />
+              )}
+            </svg>
+            <span>{theme === 'light' ? 'Light' : 'Dark'}</span>
+          </button>
+          <button
+            className="wallet-chip"
+            disabled={live.busy}
+            onClick={() => setModal('wallet')}
+          >
+            <span
+              className={`status-dot ${wallet.status === 'connected' ? 'connected' : ''}`}
+            />
+            {wallet.status === 'connected'
+              ? 'Wallet connected'
+              : 'Connect wallet'}
+          </button>
+        </div>
       </header>
 
       <main id="top">
-        <section className="hero">
-          <div className="hero-content">
-            <span className="eyebrow"><i /> EVERYONE SEES YOUR TRAIL. NOBODY SEES YOUR MISSION.</span>
-            <h1>Leave a trail.<br /><em>Hide the truth.</em></h1>
-            <p>Five public moves. Three secret stops. Two private decoy tokens. Bluff the watchers, survive a challenge, and prove your route without revealing it.</p>
-            <a className="primary-link" href="#play">Start your run <span>↗</span></a>
-            <div className="hero-proof"><span>01 / SECRET ROUTE</span><span>02 / PUBLIC TRAIL</span><span>03 / PROOF OR CHALLENGE</span></div>
+        <section className="intro">
+          <div>
+            <p className="eyebrow">
+              <span className="tiny-card" /> A GAME OF VERY INNOCENT DETOURS
+            </p>
+            <h1>
+              Nice moves.
+              <br />
+              <span>What's the catch?</span>
+            </h1>
           </div>
-          <div className="hero-orbit" aria-hidden="true"><div className="orbital-ring ring-one" /><div className="orbital-ring ring-two" /><div className="orbital-ring ring-three" /><span className="orbit-center">✧</span><span className="orbit-star star-one">✦</span><span className="orbit-star star-two">✧</span><span className="orbit-star star-three">✦</span></div>
+          <div className="intro-copy">
+            <p>
+              Three secret stops. Five public cards.
+              <br />
+              Play your route. Throw in a little chaos.
+              <br />
+              <strong>Give them something to doubt.</strong>
+            </p>
+            <button className="text-button" onClick={() => setModal('rules')}>
+              Learn the game in 30 seconds <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+          <div className="intro-sticker" aria-hidden="true">
+            <span>
+              trust issues?
+              <br />
+              you're in.
+            </span>
+            <Cat mood="watching" />
+            <span className="sticker-caption">BRING YOUR POKER FACE.</span>
+          </div>
         </section>
 
-        <section id="play" className="play-section">
-          <div className="section-heading"><div><span className="section-kicker">LEVEL 1 / FIVE MOVES</span><h2>Your next move is public.<br /><em>Your reason is yours.</em></h2></div><p>Complete your three secret stops in order. Use two extra moves as decoys. Other players can stake a token to challenge you.</p></div>
+        <section
+          id="game"
+          className="game-section"
+          aria-label="Secret Trail card table"
+        >
+          <div className="game-toolbar">
+            <div
+              className="mode-switch"
+              role="group"
+              aria-label="Choose game mode"
+            >
+              <button
+                aria-pressed={!isPractice}
+                disabled={live.busy}
+                onClick={() => switchMode('live')}
+              >
+                Live table <span className="live-dot" />
+              </button>
+              <button
+                aria-pressed={isPractice}
+                disabled={live.busy}
+                onClick={() => switchMode('practice')}
+              >
+                Practice with Miso
+              </button>
+            </div>
+            <span className="table-label">
+              {isPractice
+                ? 'JUST YOU & ONE VERY JUDGY CAT'
+                : `${MIDNIGHT_NETWORK.toUpperCase()} · ${live.snapshot ? `${live.snapshot.joined} PLAYERS DEALT IN` : 'CONNECTING TO THE TABLE'}`}
+            </span>
+          </div>
+          {isPractice && (
+            <div className="practice-banner">
+              <strong>Practice table</strong>
+              <span>
+                Miso is a bot. Moves and points stay in this tab; no wallet or
+                ZK proofs.
+              </span>
+              <button onClick={() => switchMode('live')}>
+                Play for real →
+              </button>
+            </div>
+          )}
+          {!isPractice && live.snapshotError && (
+            <div className="notice error" role="alert">
+              <div>
+                <strong>The table is having a moment.</strong>
+                <p>{live.snapshotError}</p>
+              </div>
+              <button
+                className="small-button"
+                onClick={() => void live.refresh()}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {!isPractice && !configured && (
+            <div className="notice" role="status">
+              <div>
+                <strong>The live table isn't open yet.</strong>
+                <p>
+                  A deployed Secret Trail contract needs to be configured.
+                  Practice is ready to play.
+                </p>
+              </div>
+              {import.meta.env.DEV && wallet.status === 'connected' && (
+                <button
+                  className="small-button"
+                  disabled={live.busy}
+                  onClick={() => void live.deployLocally()}
+                >
+                  Deploy with Lace
+                </button>
+              )}
+            </div>
+          )}
+          {live.deployedAddress && (
+            <div className="notice" role="status">
+              <div>
+                <strong>Contract deployed</strong>
+                <code>{live.deployedAddress}</code>
+              </div>
+              <button onClick={() => location.reload()}>Reload</button>
+            </div>
+          )}
 
-          {!configured && <div className="notice" role="alert"><strong>Deployment needed</strong><span>Set VITE_CONTRACT_ADDRESS to a deployed Secret Trail contract to enable live play. {import.meta.env.DEV && wallet.status === 'connected' && <button type="button" disabled={busy} onClick={() => void deployLocally()}>Deploy with Lace</button>}</span></div>}
-          {deployedAddress && <div className="notice success" role="status"><strong>Contract deployed</strong><span><code>{deployedAddress}</code> — save this address for Vercel, then reload the page to play locally.</span><button type="button" onClick={() => window.location.reload()}>Reload</button></div>}
-          {configured && !snapshot && !snapshotError && <div className="notice" role="status"><strong>Syncing world</strong><span>Reading the public contract state from Midnight…</span></div>}
-          {snapshotError && configured && <div className="notice warning" role="alert"><strong>World sync interrupted</strong><span>{snapshotError}</span><button type="button" onClick={() => void refresh()}>Retry</button></div>}
+          <div className="game-layout">
+            <div className="main-table">
+              <div className="felt">
+                <div className="table-topline">
+                  <div>
+                    <span className="eyebrow">
+                      EVERYONE CAN SEE THESE CARDS
+                    </span>
+                    <h2>Your public trail</h2>
+                  </div>
+                  <span className="round-tag">
+                    ROUND {String(player?.round ?? 1).padStart(2, '0')}
+                  </span>
+                </div>
+                <div className="table-seats">
+                  <div className="opponent-avatar">
+                    <Cat
+                      mood={
+                        opponents[0]?.runStatus === 2 ? 'panic' : 'watching'
+                      }
+                    />
+                  </div>
+                  <div>
+                    <strong>
+                      {isPractice
+                        ? 'Miso is watching your moves.'
+                        : opponents.length
+                          ? `${opponents.length} other ${opponents.length === 1 ? 'player is' : 'players are'} at the table.`
+                          : 'A good bluff deserves an audience.'}
+                    </strong>
+                    <span>
+                      {isPractice
+                        ? 'Practice opponent · professional side-eye'
+                        : opponents.length
+                          ? 'Take a look at their trails in the clubhouse.'
+                          : 'Invite a friend. Their public trail will appear below.'}
+                    </span>
+                  </div>
+                  {isPractice && practice && (
+                    <span className="seat-score">
+                      MISO <b>{practice.bot.score}</b> / YOU{' '}
+                      <b>{practice.player.score}</b>
+                    </span>
+                  )}
+                </div>
+                <div
+                  className={`public-trail ${!player ? 'undealt' : ''}`}
+                  aria-label={`Your public trail: ${player?.visits.length ?? 0} of 5 moves`}
+                >
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <div className="trail-slot" key={`${player?.round}-${i}`}>
+                      {player?.visits[i] !== undefined ? (
+                        <div className="played-card">
+                          <LocationCard
+                            location={player.visits[i]}
+                            index={i}
+                            mini
+                          />
+                        </div>
+                      ) : (
+                        <div className="empty-slot">
+                          <span>{String(i + 1).padStart(2, '0')}</span>
+                          <small>
+                            {!player && i === 2
+                              ? 'YOUR STORY GOES HERE'
+                              : 'PLAY A CARD'}
+                          </small>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {!player && (
+                    <div className="table-welcome">
+                      <span className="welcome-tag">THE TABLE IS YOURS.</span>
+                      <h3>
+                        A little bluff.
+                        <br />A perfect alibi.
+                      </h3>
+                      <p>
+                        Get your secret mission.
+                        <br />
+                        Make five moves. Keep them guessing.
+                      </p>
+                      <button
+                        className="button-primary"
+                        onClick={join}
+                        disabled={
+                          !isPractice &&
+                          wallet.status === 'connected' &&
+                          !live.canPlay
+                        }
+                      >
+                        {!isPractice && wallet.status !== 'connected'
+                          ? 'Connect & play'
+                          : 'Deal me in'}{' '}
+                        <span aria-hidden="true">↗</span>
+                      </button>
+                      {!isPractice && (
+                        <button
+                          className="welcome-practice"
+                          onClick={() => switchMode('practice')}
+                        >
+                          Just looking? Try a practice round
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="table-bottomline">
+                  <span>
+                    {player
+                      ? `${player.visits.length} of 5 cards on the table`
+                      : '3 secret stops + 2 decoys = your perfect cover'}
+                  </span>
+                  <span className="table-stamp">LOOK CASUAL.</span>
+                </div>
+                {settled && (
+                  <div className="round-result" role="status">
+                    <strong>
+                      {player.runStatus === 1
+                        ? isPractice
+                          ? 'Practice route checked. +1 point.'
+                          : 'Alibi accepted. +1 point.'
+                        : 'Round over. Fresh cards, fresh start.'}
+                    </strong>
+                    <span>
+                      {player.runStatus === 1
+                        ? 'Your secret stays off the table.'
+                        : 'Your next mission is waiting.'}
+                    </span>
+                  </div>
+                )}
+                {player?.challengeStatus === 1 && player.runStatus === 0 && (
+                  <div className="challenge-ribbon" role="status">
+                    <strong>
+                      {isPractice
+                        ? 'Miso called your bluff!'
+                        : 'Someone called your bluff!'}
+                    </strong>
+                    <span>
+                      {expired
+                        ? 'Time is up. This run cannot be claimed.'
+                        : 'Finish your trail and back it up.'}
+                    </span>
+                    <b>{clock(player.challengeDeadline, live.now)}</b>
+                  </div>
+                )}
+              </div>
 
-          <div className="stats-row"><div><span>PLAYERS</span><strong>{snapshot?.joined ?? '—'}</strong></div><div><span>MISSIONS PROVED</span><strong>{snapshot?.completed ?? '—'}</strong></div><div><span>CHALLENGES WON</span><strong>{snapshot?.challengesWon ?? '—'}</strong></div><div><span>YOUR SCORE</span><strong>{player?.score ?? 0}</strong></div></div>
-
-          <div className="game-grid">
-            <div className="world-card">
-              <div className="card-heading"><div><span className="section-kicker">01 / SHARED WORLD</span><h3>Choose a location</h3></div><span className="live-pill"><i /> PUBLIC LEDGER</span></div>
-              <p className="card-description">Everyone sees where you go. Only you know which stops count. Decoys look exactly like real visits to other players.</p>
-              <div className="map-grid">{PLACES.map((place, index) => <button className="place" type="button" key={place.name} disabled={!canPlay || !player || player.runStatus !== 0 || challengeExpired || player.visits.length >= 5} onClick={() => void perform({ kind: 'visit', location: index }, `Visiting ${place.name}`)}><span className="place-icon">{place.icon}</span><span className="place-tag">{place.tag}</span><strong>{place.name}</strong><small>{place.description}</small><span className="place-action">Visit ↗</span></button>)}</div>
-              <div className="visit-trail"><span>YOUR PUBLIC TRAIL</span><div>{Array.from({ length: 5 }, (_, index) => <div className={`trail-stop ${player?.visits[index] !== undefined ? 'filled' : ''}`} key={index}>{player?.visits[index] !== undefined ? PLACES[player.visits[index]].name : `0${index + 1}`}</div>)}</div></div>
+              <div className="hand-area">
+                <div className="hand-heading">
+                  <div>
+                    <h3>
+                      {settled
+                        ? 'A fresh alibi is one deal away.'
+                        : 'Your hand. Your little secret.'}
+                    </h3>
+                    <p>
+                      {player
+                        ? 'Pick a card, then play it onto your public trail. Location cards can be reused.'
+                        : 'Five places to go. Eight possible secret missions. One very suspicious you.'}
+                    </p>
+                  </div>
+                  <span className="hand-badge">5 LOCATION CARDS</span>
+                </div>
+                <div
+                  className={`card-hand ${canVisit ? 'playable' : ''}`}
+                  key={deal}
+                >
+                  {hand.map((place, i) => (
+                    <LocationCard
+                      key={place}
+                      location={place}
+                      index={i}
+                      selected={selected === place}
+                      disabled={!canVisit}
+                      onClick={() => {
+                        setSelected(place);
+                        cue('play');
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className="hand-action">
+                  <span className="hand-hint">
+                    {live.busy
+                      ? 'Your move is being checked. Hold that poker face.'
+                      : !player
+                        ? 'Everyone gets the same move budget. The mission is yours alone.'
+                        : settled
+                          ? player.runStatus === 1
+                            ? 'One point. Zero spilled secrets. Nicely played.'
+                            : 'Bad round? Happens to the most suspicious of us.'
+                          : expired
+                            ? 'The challenge clock ran out. Settle this round to play again.'
+                            : !progress.possible
+                              ? 'Your secret route no longer fits. Fold this round and try again.'
+                              : player.visits.length === 5
+                                ? 'All cards down. Time to back up your story.'
+                                : selected === null
+                                  ? 'Tap a location card to choose your next move.'
+                                  : `${PLACES[selected].caption} Ready to make that your next public move?`}
+                  </span>
+                  {settled ? (
+                    <button
+                      className="button-primary"
+                      disabled={!canAct}
+                      onClick={() =>
+                        void act({ kind: 'nextRound' }, 'Dealing a fresh round')
+                      }
+                    >
+                      Deal next round ↗
+                    </button>
+                  ) : player && player.visits.length === 5 ? (
+                    <button
+                      className="button-primary"
+                      disabled={!canClaim}
+                      onClick={() =>
+                        void act({ kind: 'claim' }, 'Backing up your story')
+                      }
+                    >
+                      {isPractice
+                        ? 'Check my route'
+                        : 'Prove it. Take the point.'}{' '}
+                      ↗
+                    </button>
+                  ) : (
+                    <button
+                      className="button-primary"
+                      disabled={!canVisit || selected === null}
+                      onClick={() =>
+                        selected !== null &&
+                        void act(
+                          { kind: 'visit', location: selected },
+                          `Playing ${PLACES[selected].name}`,
+                        )
+                      }
+                    >
+                      {selected === null
+                        ? 'Pick your next card'
+                        : `Play ${PLACES[selected].name}`}{' '}
+                      <span aria-hidden="true">↗</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <aside className="mission-card">
-              <div className="card-heading"><div><span className="section-kicker">02 / ONLY YOU CAN SEE THIS</span><h3>Secret briefing</h3></div><span className="lock-icon">✳</span></div>
-              {wallet.status === 'connected' && profile && route ? (
-                <>
-                  <p className="mission-intro">Round {player?.round ?? 1}: visit these three locations in order within five public moves.</p>
-                  <div className="mission-route">{route.map((location, index) => <div key={index}><span>0{index + 1}</span><strong>{PLACES[location].name}</strong></div>)}</div>
-                  <div className="token-budget" aria-label={`${decoysLeft} of 2 private decoy tokens remain`}>
-                    <div><strong>PRIVATE DECOY TOKENS</strong><small>{decoysLeft} / 2 left</small></div>
-                    <div className="token-dots">{[0, 1].map((token) => <i key={token} className={token < decoysLeft ? 'available' : ''} />)}</div>
+            <aside className="briefing" aria-label="Your private mission">
+              <div className="briefing-heading">
+                <span className="eyebrow">FOR YOUR EYES ONLY</span>
+                <button
+                  className="text-button"
+                  onClick={() => setPeek(!peek)}
+                  aria-pressed={!peek}
+                  aria-label={
+                    peek ? 'Hide secret mission' : 'Show secret mission'
+                  }
+                >
+                  {peek ? 'Hide' : 'Peek'}
+                </button>
+              </div>
+              <h2>The secret bit.</h2>
+              <p className="briefing-subtitle">
+                Visit these three places <strong>in this order.</strong>
+                <br /> Mix in two extra moves as decoys.
+              </p>
+              <div className="secret-cards">
+                {player && route && peek ? (
+                  route.map((place, i) => (
+                    <div
+                      className={`secret-stop ${i < progress.matched ? 'done' : ''}`}
+                      key={i}
+                    >
+                      <span className="secret-order">
+                        {i < progress.matched ? '✓' : i + 1}
+                      </span>
+                      <div className={`secret-art ${PLACES[place].color}`}>
+                        <PlaceArt place={place} />
+                      </div>
+                      <div>
+                        <small>
+                          {i < progress.matched
+                            ? 'VISITED'
+                            : `SECRET STOP ${i + 1}`}
+                        </small>
+                        <strong>{PLACES[place].name}</strong>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="secret-fan">
+                    {[1, 2, 3].map((n) => (
+                      <CardBack number={n} key={n} small />
+                    ))}
                   </div>
-                  <p className="mission-note">An extra stop spends a decoy. The public trail never labels which moves were decoys.</p>
-                  {player?.challengeStatus === 1 && <div className={`challenge-alert ${challengeExpired ? 'expired' : ''}`} role="status">
-                    <strong>Someone challenged your run</strong>
-                    <span>{challengeExpired ? 'Proof window expired. The challenger can collect the point.' : `Prove before the deadline — about ${minutesLeft(player.challengeDeadline, now)} left.`}</span>
-                  </div>}
-                  <div className="mission-status"><span className={player?.runStatus === 1 ? 'complete' : readyToClaim ? 'ready' : ''}>
-                    {player?.runStatus === 1 ? '✦ MISSION PROVED' : player?.runStatus === 2 ? '✦ RUN LOST' : readyToClaim ? '✦ READY TO PROVE' : `${player?.visits.length ?? 0} OF 5 MOVES RECORDED`}
-                  </span></div>
-                  {player?.runStatus === 0 && !routeStillPossible && <p className="inline-error">Your remaining moves cannot complete this route. Forfeit to start a new round.</p>}
-                  {player?.runStatus === 0 && <>
-                    <button className="claim-button" type="button" disabled={!canPlay || !readyToClaim} onClick={() => void perform({ kind: 'claim' }, 'Proving your mission')}>Generate proof & claim point <span>↗</span></button>
-                    <button className="quiet-action" type="button" disabled={!canPlay} onClick={() => void perform({ kind: 'forfeit' }, 'Forfeiting this run')}>Forfeit this run</button>
-                  </>}
-                  {player && player.runStatus !== 0 && <button className="claim-button" type="button" disabled={!canPlay} onClick={() => void perform({ kind: 'nextRound' }, 'Starting a new round')}>Start a new round <span>↗</span></button>}
-                </>
-              ) : <div className="mission-locked"><span>✧</span><strong>Your mission is waiting.</strong><p>Connect Lace, then receive a private route generated in your browser.</p></div>}
-              <div className="wallet-area"><span>YOUR WALLET</span>{wallet.status === 'connected' ? <><code>{wallet.address ? short(wallet.address) : 'Connected'}</code><button type="button" className="wallet-button secondary" onClick={wallet.disconnect}>Disconnect</button></> : <button className="wallet-button" type="button" disabled={wallet.status === 'detecting' || wallet.status === 'connecting'} onClick={() => void wallet.connect()}>{wallet.status === 'detecting' ? 'Detecting Lace…' : wallet.status === 'connecting' ? 'Connecting…' : 'Connect Lace wallet'}</button>}{wallet.error && <p className="inline-error" role="alert">{wallet.error}</p>}{wallet.status === 'connected' && !player && <button className="join-button" type="button" disabled={!canPlay} onClick={() => void perform({ kind: 'join' }, 'Joining the game')}>{profile ? 'Retry joining game' : 'Receive secret mission'} <span>↗</span></button>}{player && <small className="wallet-hint">Challenge tokens: {player.challengeTokens} / 3. Stake one to challenge another player; lose it if they prove their route.</small>}{wallet.status === 'connected' && <small className="wallet-hint">{wallet.dustBalance?.balance === 0n ? 'Generate tDUST in Lace before playing.' : 'Each public action requires a Lace transaction and tDUST.'}</small>}</div>
+                )}
+              </div>
+              {!player && (
+                <p className="sealed-note">
+                  A sealed mission, just for you.
+                  <br />
+                  Join the table to open it.
+                </p>
+              )}
+              {player && !peek && (
+                <p className="sealed-note">
+                  Poker face mode. Tap Peek to look.
+                </p>
+              )}
+              <div className="budget-row">
+                <div>
+                  <strong>Decoy moves</strong>
+                  <small>
+                    {player
+                      ? `${progress.decoysLeft} of 2 left · private`
+                      : 'Two chances to throw them off'}
+                  </small>
+                </div>
+                <div
+                  className="tokens"
+                  aria-label={`${player ? progress.decoysLeft : 2} decoy moves remaining`}
+                >
+                  {[0, 1].map((n) => (
+                    <span
+                      key={n}
+                      className={
+                        n < (player ? progress.decoysLeft : 2) ? '' : 'spent'
+                      }
+                    >
+                      D
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="budget-row">
+                <div>
+                  <strong>Call-bluff tokens</strong>
+                  <small>Stake one. Make them prove it.</small>
+                </div>
+                <div
+                  className="tokens challenge-tokens"
+                  aria-label={`${player?.challengeTokens ?? 3} challenge tokens`}
+                >
+                  {[0, 1, 2].map((n) => (
+                    <span
+                      key={n}
+                      className={
+                        n < (player?.challengeTokens ?? 3) ? '' : 'spent'
+                      }
+                    >
+                      ?
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="score-slip">
+                <span>YOUR {isPractice ? 'PRACTICE ' : ''}SCORE</span>
+                <strong>
+                  {String(player?.score ?? 0).padStart(2, '0')}
+                  <small>pts</small>
+                </strong>
+              </div>
+              <div className="cat-commentary">
+                <div className="speech-bubble" key={catLine}>
+                  {catLine}
+                </div>
+                <Cat mood={mood} />
+                <span>MISO, UNOFFICIAL TABLE JUDGE</span>
+              </div>
+              {player && player.runStatus === 0 && (
+                <button
+                  className="fold-button"
+                  disabled={!canAct || live.busy}
+                  onClick={() => setModal('forfeit')}
+                >
+                  Fold this round
+                </button>
+              )}
+              {!player && (
+                <button
+                  className="text-button briefing-rules"
+                  onClick={() => setModal('rules')}
+                >
+                  Wait, how does this work? →
+                </button>
+              )}
             </aside>
           </div>
 
-          {busy && <div className="progress" role="status" aria-live="polite"><span className="spinner" /><div><strong>{phase === 'proving' ? 'Generating your zero knowledge proof…' : phase === 'balancing' ? 'Preparing your Lace transaction…' : phase === 'submitting' ? 'Submitting to Midnight…' : phase === 'confirming' ? 'Waiting for Preprod confirmation…' : `${actionLabel}…`}</strong><p>Keep this tab open and approve the transaction in Lace when prompted.</p></div></div>}
-          {actionError && <div className="notice warning" role="alert"><strong>Action could not finish</strong><span>{actionError}</span></div>}
-          {result && <div className="notice success" role="status"><strong>Action recorded on Midnight</strong><span>Transaction <code>{short(result.txId)}</code> · Block {result.blockHeight}</span></div>}
+          {live.busy && (
+            <div
+              className="transaction-progress"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="spinner" />
+              <div>
+                <strong>
+                  {live.phase === 'proving'
+                    ? 'Backing up your move. Keeping your secret.'
+                    : live.phase === 'balancing'
+                      ? 'Lace is preparing your move.'
+                      : live.phase === 'submitting'
+                        ? 'Sending your move to the table.'
+                        : live.phase === 'confirming'
+                          ? 'Waiting for Midnight to confirm your move.'
+                          : `${live.actionLabel}…`}
+                </strong>
+                <p>
+                  {live.phase === 'balancing'
+                    ? 'Approve the transaction in Lace when it asks.'
+                    : 'Keep this tab open. The card lands after confirmation.'}{' '}
+                  {startedAt &&
+                    live.now - startedAt > 45_000 &&
+                    'The proof service may be waking up; this can take a few minutes.'}
+                </p>
+              </div>
+              <span className="elapsed">
+                {startedAt
+                  ? `${Math.max(0, Math.floor((live.now - startedAt) / 1000))}s`
+                  : ''}
+              </span>
+            </div>
+          )}
+          {!isPractice && live.actionError && (
+            <div className="notice error" role="alert">
+              <Cat mood="panic" />
+              <div>
+                <strong>That move couldn't finish.</strong>
+                <p>{live.actionError}</p>
+              </div>
+            </div>
+          )}
+          {!isPractice && live.result && (
+            <div className="notice success" role="status">
+              <div>
+                <strong>On the table. Officially.</strong>
+                <p>
+                  Your move was recorded on Midnight.{' '}
+                  <span>Transaction {short(live.result.txId)}</span> · Block{' '}
+                  {live.result.blockHeight}
+                </p>
+              </div>
+            </div>
+          )}
+          {isPractice && practice && (
+            <div className="practice-message" role="status">
+              <span className="miso-mini">
+                <Cat mood={mood} />
+              </span>
+              <div>
+                <strong>Meanwhile, at the practice table…</strong>
+                <p>{practice.message}</p>
+              </div>
+              <span className="practice-tag">LOCAL PLAY</span>
+            </div>
+          )}
         </section>
 
-        <section id="challenges" className="community-section challenge-section">
-          <div className="section-heading"><div><span className="section-kicker">BLUFF / CALL / PROVE</span><h2>Call their bluff.<br /><em>Risk a token.</em></h2></div><p>Watch a public trail. Stake one challenge token if you think the runner cannot prove their hidden route. A valid proof burns your stake; a forfeit or missed deadline earns you a point.</p></div>
-          <div className="challenge-list">
-            {otherPlayers.length ? otherPlayers.map((entry) => {
-              const canChallenge = canPlay && !!player && player.id !== entry.id && player.challengeTokens > 0 &&
-                entry.runStatus === 0 && entry.challengeStatus === 0;
-              const canResolve = canPlay && !!player && entry.challengeStatus === 1 &&
-                entry.challengeDeadline !== null && now >= entry.challengeDeadline;
-              return <div className="challenge-run" key={entry.id}>
-                <div><span>ROUND {entry.round} · {short(entry.id)}</span><strong>{entry.visits.map((location) => PLACES[location]?.name ?? '?').join(' → ')}</strong><small>{entry.runStatus === 1 ? 'Proof accepted — runner wins.' : entry.runStatus === 2 ? 'Run lost.' : entry.challengeStatus === 1 ? `Challenge open · ${minutesLeft(entry.challengeDeadline, now)} to prove` : `${entry.visits.length}/5 moves · open to challenge`}</small></div>
-                {canChallenge && <button type="button" disabled={busy} onClick={() => void perform({ kind: 'challenge', targetId: entry.id }, 'Challenging this run')}>Challenge · stake 1 token</button>}
-                {canResolve && <button type="button" disabled={busy} onClick={() => void perform({ kind: 'resolve', targetId: entry.id }, 'Settling expired challenge')}>{entry.challengerId === player?.id ? 'Collect your point' : 'Settle expired challenge'}</button>}
-                {!canChallenge && !canResolve && <span className="row-status">{entry.runStatus === 1 ? 'PROVED' : entry.runStatus === 2 ? 'SETTLED' : entry.challengeStatus === 1 ? 'CHALLENGED' : 'WATCHING'}</span>}
-              </div>;
-            }) : <p className="empty-state">No public trails yet. Make the first move and give others something to doubt.</p>}
+        <section id="clubhouse" className="clubhouse">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow">
+                GOOD COMPANY. QUESTIONABLE ALIBIS.
+              </span>
+              <h2>The clubhouse.</h2>
+            </div>
+            <div className="club-tabs" role="group" aria-label="Clubhouse view">
+              <button
+                aria-pressed={activeTab === 'trails'}
+                onClick={() => setActiveTab('trails')}
+              >
+                Watch & call bluff
+              </button>
+              <button
+                aria-pressed={activeTab === 'scores'}
+                onClick={() => setActiveTab('scores')}
+              >
+                Scoreboard
+              </button>
+            </div>
           </div>
-          <p className="challenge-rule">An invalid ZK proof cannot be posted to the chain. A challenger wins only if the runner forfeits or fails to prove within the on-chain deadline.</p>
+          {activeTab === 'trails' ? (
+            <div className="opponent-grid">
+              {opponents.length ? (
+                opponents.slice(0, 12).map((entry) => (
+                  <article className="opponent-run" key={entry.id}>
+                    <div className="opponent-heading">
+                      <span className="opponent-avatar">
+                        <Cat
+                          mood={
+                            entry.runStatus === 1
+                              ? 'happy'
+                              : entry.runStatus === 2
+                                ? 'panic'
+                                : 'watching'
+                          }
+                        />
+                      </span>
+                      <div>
+                        <h3>{playerName(entry)}</h3>
+                        <p>
+                          {isPractice ? 'Practice bot' : short(entry.id)} ·
+                          Round {entry.round}
+                        </p>
+                      </div>
+                      <span className={`run-status status-${entry.runStatus}`}>
+                        {entry.runStatus === 1
+                          ? 'BACKED IT UP'
+                          : entry.runStatus === 2
+                            ? 'FOLDED / TIMED OUT'
+                            : entry.challengeStatus === 1
+                              ? 'BLUFF CALLED'
+                              : 'LOOKS INNOCENT'}
+                      </span>
+                    </div>
+                    <div
+                      className="opponent-trail"
+                      aria-label={`${playerName(entry)} public trail`}
+                    >
+                      {Array.from({ length: 5 }, (_, i) =>
+                        entry.visits[i] !== undefined ? (
+                          <div
+                            className={`opponent-stop ${PLACES[entry.visits[i]].color}`}
+                            key={i}
+                          >
+                            <PlaceArt place={entry.visits[i]} />
+                            <span>{PLACES[entry.visits[i]].name}</span>
+                          </div>
+                        ) : (
+                          <div className="opponent-empty" key={i}>
+                            {i + 1}
+                          </div>
+                        ),
+                      )}
+                    </div>
+                    <div className="opponent-footer">
+                      <span>
+                        {entry.challengeStatus === 1 && entry.runStatus === 0
+                          ? `Proof window: ${clock(entry.challengeDeadline, live.now)}`
+                          : `${entry.visits.length} / 5 public moves · ${entry.score} ${entry.score === 1 ? 'point' : 'points'}`}
+                      </span>
+                      {canResolve(entry) ? (
+                        <button
+                          className="small-button"
+                          onClick={() =>
+                            void act(
+                              { kind: 'resolve', targetId: entry.id },
+                              'Settling the challenge',
+                            )
+                          }
+                        >
+                          Settle challenge
+                        </button>
+                      ) : (
+                        <button
+                          className="call-bluff"
+                          disabled={!canChallenge(entry)}
+                          onClick={() => setChallengeTarget(entry)}
+                        >
+                          Call bluff <span>−1 token</span>
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="empty-club">
+                  <Cat />
+                  <div>
+                    <h3>Suspiciously quiet in here.</h3>
+                    <p>
+                      {isPractice
+                        ? 'Deal a practice round to meet Miso.'
+                        : 'No other players have joined yet. Bring a friend with Lace, or test your poker face against Miso.'}
+                    </p>
+                    <button
+                      className="text-button"
+                      onClick={() => switchMode('practice')}
+                    >
+                      Pull up a chair with Miso →
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="scoreboard">
+              {scores.length ? (
+                scores.map((entry, i) => (
+                  <div className="score-row" key={entry.id}>
+                    <span className="rank">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <strong>{playerName(entry)}</strong>
+                    <span>{entry.challengeTokens} bluff tokens</span>
+                    <b>
+                      {entry.score} <small>pts</small>
+                    </b>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-club">
+                  <Cat mood="happy" />
+                  <div>
+                    <h3>The top spot has your name on it.</h3>
+                    <p>
+                      Complete your mission or win a challenge to earn a point.
+                      {isPractice && ' These are practice scores only.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <p className="club-note">
+            {isPractice
+              ? 'Practice checks happen locally. Live play uses Midnight proofs and real players.'
+              : 'Live players take moves in their own time. The board refreshes every 15 seconds.'}{' '}
+            A valid proof wins; a forfeit or missed deadline loses. Points have
+            no cash value.
+          </p>
         </section>
 
-        <section id="leaderboard" className="community-section leaderboard-section"><div className="section-heading"><div><span className="section-kicker">THE SHARED STORY</span><h2>Visible actions.<br /><em>Hidden intentions.</em></h2></div><p>Score a point by proving your own mission or by winning a challenge. The hidden route stays private even when a proof wins.</p></div><div className="community-grid"><div className="community-card"><div className="card-heading"><h3>Public trails</h3><span>LIVE LEDGER</span></div>{otherPlayers.length ? otherPlayers.map((entry) => <div className="player-row" key={entry.id}><span className="avatar">✧</span><div><strong>{short(entry.id)} · R{entry.round}</strong><small>{entry.visits.map((location) => PLACES[location]?.name ?? '?').join(' → ')}</small></div><span className="row-status">{entry.runStatus === 1 ? 'PROVED' : entry.runStatus === 2 ? 'LOST' : `${entry.visits.length}/5`}</span></div>) : <p className="empty-state">No public visits yet. Be the first explorer.</p>}</div><div className="community-card"><div className="card-heading"><h3>Leaderboard</h3><span>PROVED POINTS</span></div>{leaderboard.length ? leaderboard.map((entry, index) => <div className="player-row" key={entry.id}><span className="rank">{String(index + 1).padStart(2, '0')}</span><div><strong>{short(entry.id)}</strong><small>Round {entry.round} · {entry.challengeTokens} challenge tokens</small></div><strong className="points">{entry.score} PT</strong></div>) : <p className="empty-state">The first proved mission or successful challenge takes the lead.</p>}</div></div></section>
-
-        <section id="privacy" className="privacy-section"><span className="section-kicker">HOW THE PROOF WORKS</span><h2>They see the journey.<br /><em>Not the assignment.</em></h2><div className="privacy-grid"><div><span className="privacy-number">01</span><h3>Private mission</h3><p>Your browser chooses one of eight routes and a fresh random salt. Only a commitment appears on the public ledger before you move.</p></div><div><span className="privacy-number">02</span><h3>Public actions</h3><p>All five visits are visible. Which three fulfill the mission and which two are decoys remain private.</p></div><div><span className="privacy-number">03</span><h3>Verified result</h3><p>A zero knowledge proof checks the committed route against the visits. Challenges settle on-chain without publishing the route.</p></div></div><p className="privacy-fineprint">Observers can still infer possible missions from a public trail. A hosted proof service may see private proving inputs, so use a prover you trust. This level proves a committed route, not that the browser assigned missions fairly.</p>
-          <div className="level-roadmap"><div><span>LEVEL 1 · LIVE IN THIS VERSION</span><strong>Three secret stops, two decoys, player challenges</strong></div><div><span>LEVEL 2 · NEXT</span><strong>Four secret stops, three decoys</strong></div><div><span>LEVEL 3 · PLANNED</span><strong>Order and time constraints</strong></div><div><span>LEVEL 4 · PLANNED</span><strong>Multiple valid mission branches</strong></div></div>
+        <section className="rules-strip" aria-label="Game in four steps">
+          <div>
+            <span>01 / THE DEAL</span>
+            <h3>Keep it close.</h3>
+            <p>Get three secret stops, in order. Everyone has five moves.</p>
+          </div>
+          <div>
+            <span>02 / THE DETOUR</span>
+            <h3>Look busy.</h3>
+            <p>
+              Play your route with two extra moves. All five visits are public.
+            </p>
+          </div>
+          <div>
+            <span>03 / THE SIDE-EYE</span>
+            <h3>Call their bluff.</h3>
+            <p>Think they can't finish? Stake a token and start their timer.</p>
+          </div>
+          <div>
+            <span>04 / THE RECEIPTS</span>
+            <h3>Prove. Don't tell.</h3>
+            <p>Back up your mission without publishing it. Take the point.</p>
+          </div>
         </section>
+        <div className="privacy-footnote">
+          <span>YOUR MISSION ISN'T PRINTED ON THE TABLE.</span>
+          <p>
+            The proof keeps it off the public ledger. Your moves can still give
+            clues.
+          </p>
+          <button className="text-button" onClick={() => setModal('privacy')}>
+            The privacy fine print ↗
+          </button>
+        </div>
       </main>
-      <footer><span>✧ SECRET TRAIL</span><span>Built on Midnight · {MIDNIGHT_NETWORK.toUpperCase()}</span><a href="#top">Back to top ↑</a></footer>
+      <footer className="site-footer">
+        <a className="footer-brand" href="#top">
+          secret trail.
+        </a>
+        <span>A little strategy. A lot of side-eye.</span>
+        <div>
+          <a
+            href="https://github.com/ashuujha/midnight-secret-trail"
+            target="_blank"
+            rel="noreferrer"
+          >
+            The source ↗
+          </a>
+          <span>Powered by Midnight</span>
+        </div>
+      </footer>
+
+      {modal === 'rules' && (
+        <Dialog
+          title="The art of looking innocent."
+          onClose={() => setModal(null)}
+        >
+          <p className="dialog-lead">
+            You're on a secret errand. Everyone can see where you go. Keep them
+            guessing why.
+          </p>
+          <ol className="rule-list">
+            <li>
+              <strong>Open your mission.</strong>
+              <p>
+                You'll get three places, like Museum → Cafe → Stadium. Visit
+                them in that order.
+              </p>
+            </li>
+            <li>
+              <strong>Play exactly five location cards.</strong>
+              <p>
+                Add two extra visits anywhere. Park → Museum → Mall → Cafe →
+                Stadium works! Every visit is public; the secret stops aren't
+                labelled.
+              </p>
+            </li>
+            <li>
+              <strong>Call bluff. Or keep a poker face.</strong>
+              <p>
+                Everyone starts with three challenge tokens. Stake one against
+                another player after their first move. They get about 20 minutes
+                to finish and prove.
+              </p>
+            </li>
+            <li>
+              <strong>Back up your story.</strong>
+              <p>
+                A valid proof earns you one point and costs your challenger
+                their token. Forfeit or miss the timer and the challenger gets a
+                point and their token back. Then deal a fresh round.
+              </p>
+            </li>
+          </ol>
+          <p className="dialog-aside">
+            Location cards are reusable. These are virtual visits, not
+            real-world travel. Players run their own trails; the shared
+            scoreboard counts points across rounds.
+          </p>
+          <button
+            className="button-primary"
+            onClick={() => {
+              setModal(null);
+              switchMode('practice');
+              document
+                .getElementById('game')
+                ?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          >
+            Got it. Let me try with Miso ↗
+          </button>
+        </Dialog>
+      )}
+      {modal === 'privacy' && (
+        <Dialog title="Secrets, with receipts." onClose={() => setModal(null)}>
+          <div className="privacy-details">
+            <h3>On the table</h3>
+            <p>
+              Your player ID, five visits, mission commitment, score, token
+              balance and challenge results are public.
+            </p>
+            <h3>Under the table</h3>
+            <p>
+              Your mission, identity secret and random commitment salt stay in
+              your browser and are supplied privately to the prover. The proof
+              checks the route without publishing them to the ledger.
+            </p>
+            <h3>The honest bit</h3>
+            <p>
+              Your trail can narrow down the eight possible missions, sometimes
+              to just one. A hosted prover can see your proving inputs. Browser
+              storage contains your private mission; don't clear it mid-game or
+              share your browser profile.
+            </p>
+            <p>
+              The browser chooses your mission. This MVP proves you followed the
+              committed route, not that the deal was fair against a modified
+              browser. Practice uses local rule checks, not ZK proofs.
+            </p>
+          </div>
+          <a
+            className="text-button"
+            href="https://github.com/ashuujha/midnight-secret-trail#privacy-model"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Read the full privacy model ↗
+          </a>
+        </Dialog>
+      )}
+      {modal === 'wallet' && (
+        <Dialog
+          title={
+            wallet.status === 'connected'
+              ? 'Your seat at the table.'
+              : 'Bring your wallet. Keep your secrets.'
+          }
+          onClose={() => setModal(null)}
+        >
+          <p className="dialog-lead">
+            Live play uses Lace on Midnight {MIDNIGHT_NETWORK}. Each deal, visit
+            and challenge needs a wallet approval and tDUST.
+          </p>
+          {wallet.status === 'connected' ? (
+            <>
+              <div className="wallet-details">
+                <span>CONNECTED WALLET</span>
+                <code>{wallet.address && short(wallet.address)}</code>
+                <span>TABLE CONTRACT</span>
+                <code>{CONTRACT_ADDRESS}</code>
+                <p>
+                  {wallet.dustBalance?.balance === 0n
+                    ? 'No usable tDUST yet. Generate tDUST in Lace and let it sync before playing.'
+                    : 'Keep Lace synced and its proof service running for live moves.'}
+                </p>
+              </div>
+              <button
+                className="button-primary"
+                onClick={() => {
+                  setModal(null);
+                  switchMode('live');
+                }}
+              >
+                Back to the table ↗
+              </button>
+              <button
+                className="fold-button"
+                disabled={live.busy}
+                onClick={() => {
+                  wallet.disconnect();
+                  setModal(null);
+                }}
+              >
+                Disconnect wallet
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="button-primary"
+                disabled={
+                  wallet.status === 'connecting' ||
+                  wallet.status === 'detecting'
+                }
+                onClick={() => void wallet.connect()}
+              >
+                {wallet.status === 'connecting'
+                  ? 'Waiting for Lace…'
+                  : wallet.status === 'detecting'
+                    ? 'Looking for Lace…'
+                    : 'Connect Lace wallet'}{' '}
+                ↗
+              </button>
+              <button
+                className="text-button"
+                onClick={() => {
+                  setModal(null);
+                  switchMode('practice');
+                }}
+              >
+                No wallet? Play a practice round →
+              </button>
+            </>
+          )}
+          {wallet.error && (
+            <p className="wallet-error" role="alert">
+              {wallet.error}
+            </p>
+          )}
+          <details className="wallet-help">
+            <summary>Wallet or proof service not ready?</summary>
+            <p>
+              Lace's own proof server must be reachable to balance a
+              transaction. If Lace uses localhost:6300, start the local proof
+              bridge. The site's hosted prover does not change Lace's setting.
+            </p>
+            <a
+              className="text-button"
+              href="https://github.com/ashuujha/midnight-secret-trail#setup--run-locally"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Setup instructions ↗
+            </a>
+          </details>
+        </Dialog>
+      )}
+      {modal === 'forfeit' && (
+        <Dialog title="Fold this round?" onClose={() => setModal(null)}>
+          <Cat mood="panic" className="dialog-cat" />
+          <p className="dialog-lead">
+            Your current run will end.{' '}
+            {player?.challengeStatus === 1
+              ? 'Your challenger gets a point and their token back.'
+              : 'You can start a fresh round with a new secret mission.'}
+          </p>
+          <div className="dialog-actions">
+            <button className="button-outline" onClick={() => setModal(null)}>
+              Keep playing
+            </button>
+            <button
+              className="button-primary"
+              onClick={() => {
+                setModal(null);
+                void act({ kind: 'forfeit' }, 'Folding this round');
+              }}
+            >
+              Yes, fold this round
+            </button>
+          </div>
+        </Dialog>
+      )}
+      {challengeTarget && (
+        <Dialog
+          title="Feeling suspicious?"
+          onClose={() => setChallengeTarget(null)}
+        >
+          <Cat mood="watching" className="dialog-cat" />
+          <p className="dialog-lead">
+            Stake one token to call {playerName(challengeTarget)}'s bluff.
+          </p>
+          <p>
+            If they prove their route, you lose the token. If they fold or miss
+            their deadline, you get a point and the token back.
+            {isPractice && ' Miso responds immediately in this practice round.'}
+          </p>
+          <div className="dialog-actions">
+            <button
+              className="button-outline"
+              onClick={() => setChallengeTarget(null)}
+            >
+              Let it slide
+            </button>
+            <button
+              className="button-primary"
+              disabled={!canChallenge(challengeTarget)}
+              onClick={() => {
+                const targetId = challengeTarget.id;
+                setChallengeTarget(null);
+                void act(
+                  { kind: 'challenge', targetId },
+                  'Calling their bluff',
+                );
+              }}
+            >
+              Call bluff · stake 1 token
+            </button>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 }
