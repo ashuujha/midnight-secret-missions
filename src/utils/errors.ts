@@ -70,6 +70,9 @@ export const friendlyCircuitError = (error: unknown, networkId: string): string 
   if (/lace transaction balancing failed/.test(normalized)) {
     const walletProver = message.match(/wallet proof server: ([^)]+)\)/)?.[1];
     const status = message.match(/(?:code|status)=["']?(\d{3})\b/i)?.[1];
+    if (walletProver && /^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(walletProver)) {
+      return `Lace is still using its local proof server (${walletProver}), so the transaction was not submitted. In Lace, open Settings → Midnight Settings → Proof Server, select Remote, and set https://midnight-counter-prover.onrender.com. Save, reconnect Lace, and retry.`;
+    }
     const service = walletProver ? ` Lace proof server: ${walletProver}.` : '';
     const detail = status ? ` Its request returned HTTP ${status}.` : '';
     return `Lace could not balance the transaction, so it was not submitted.${service}${detail} Check Lace's proof-server setting, wallet sync, and available tDUST. The site's proof-server setting does not change Lace's.`;
