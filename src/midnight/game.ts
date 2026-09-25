@@ -1,7 +1,6 @@
 import type { ConnectedAPI } from '@midnight-ntwrk/dapp-connector-api';
 import { CompiledContract } from '@midnight-ntwrk/compact-js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
-import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-config-provider';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
@@ -23,6 +22,8 @@ import {
 import * as Game from '../../managed/secret-missions/contract/index.js';
 import { inMemoryPrivateStateProvider } from '../in-memory-private-state-provider';
 import { getErrorMessage, getProofServerOrigin } from '../utils/errors';
+import { CachedZkConfigProvider } from './cached-zk-config';
+import { warmProofServer } from './prover-readiness';
 
 export const LOCATIONS = ['Harbor', 'Library', 'Observatory', 'Market'] as const;
 export type GameProfile = { secret: string; mission: number; id: string };
@@ -30,12 +31,22 @@ export type Player = { id: string; visits: number[]; score: number; claimed: boo
 export type GameSnapshot = { players: Player[]; completed: number; joined: number };
 export type GameAction = { kind: 'join' } | { kind: 'visit'; location: number } | { kind: 'claim' };
 export type TransactionResult = { txId: string; blockHeight: string };
+export type TransactionStage = 'proving' | 'balancing' | 'submitting' | 'confirming';
 
 const PRIVATE_STATE_ID = 'secretMissionState';
 type PrivateStateId = typeof PRIVATE_STATE_ID;
 type CircuitKeys = 'join' | 'visit' | 'claim';
 type PrivateState = { secret: Uint8Array; mission: bigint };
 type Providers = MidnightProviders<CircuitKeys, PrivateStateId, PrivateState>;
+let browserZkConfigProvider: CachedZkConfigProvider<CircuitKeys> | undefined;
+
+function getBrowserZkConfigProvider(): CachedZkConfigProvider<CircuitKeys> {
+  return browserZkConfigProvider ??= new CachedZkConfigProvider<CircuitKeys>(window.location.origin, fetch.bind(window));
+}
+
+export function prefetchGameCircuit(circuit: CircuitKeys): Promise<unknown> {
+  return getBrowserZkConfigProvider().get(circuit);
+}
 
 const witnesses: Game.Witnesses<PrivateState> = {
   identitySecret(context) { return [context.privateState, context.privateState.secret]; },
@@ -85,13 +96,14 @@ const stage = async <T,>(label: string, operation: () => Promise<T>): Promise<T>
   catch (error) { throw new Error(`${label}: ${getErrorMessage(error) || 'Unknown error'}`, { cause: error }); }
 };
 
-async function createProviders(api: ConnectedAPI, networkId: string): Promise<Providers> {
+async function createProviders(api: ConnectedAPI, networkId: string, onStage?: (stage: TransactionStage) => void): Promise<Providers> {
   setNetworkId(networkId);
   const configuration = await stage('Reading Lace configuration failed', () => api.getConfiguration());
   if (configuration.networkId !== networkId) throw new Error(`Network mismatch. Switch Lace to ${networkId}.`);
   const keys = await stage('Reading Lace addresses failed', () => api.getShieldedAddresses());
-  const zkConfigProvider = new FetchZkConfigProvider<CircuitKeys>(window.location.origin, fetch.bind(window));
+  const zkConfigProvider = getBrowserZkConfigProvider();
   const hostedProver = import.meta.env.VITE_PROOF_SERVER_URL?.trim();
+  if (hostedProver) await stage('Proof server could not become ready', warmProofServer);
   const proofProvider: ProofProvider = hostedProver
     ? httpClientProofProvider(hostedProver, zkConfigProvider)
     : createProofProvider(await stage('Initializing Lace proving failed', () => api.getProvingProvider(zkConfigProvider.asKeyMaterialProvider())));
@@ -99,12 +111,16 @@ async function createProviders(api: ConnectedAPI, networkId: string): Promise<Pr
   return {
     privateStateProvider: localState,
     zkConfigProvider,
-    proofProvider: { proveTx: (transaction, config) => stage('Proof service request failed', () => proofProvider.proveTx(transaction, config)) },
+    proofProvider: { proveTx: (transaction, config) => {
+      onStage?.('proving');
+      return stage('Proof service request failed', () => proofProvider.proveTx(transaction, config));
+    } },
     publicDataProvider: indexerPublicDataProvider(configuration.indexerUri, configuration.indexerWsUri),
     walletProvider: {
       getCoinPublicKey: () => keys.shieldedCoinPublicKey,
       getEncryptionPublicKey: () => keys.shieldedEncryptionPublicKey,
       balanceTx: async (transaction: UnboundTransaction): Promise<FinalizedTransaction> => {
+        onStage?.('balancing');
         const origin = getProofServerOrigin(configuration.proverServerUri);
         const balanced = await stage(`Lace transaction balancing failed${origin ? ` (wallet proof server: ${origin})` : ''}`,
           () => api.balanceUnsealedTransaction(toHex(transaction.serialize())));
@@ -113,7 +129,9 @@ async function createProviders(api: ConnectedAPI, networkId: string): Promise<Pr
     },
     midnightProvider: {
       submitTx: async (transaction: FinalizedTransaction): Promise<TransactionId> => {
+        onStage?.('submitting');
         await stage('Lace transaction submission failed', () => api.submitTransaction(toHex(transaction.serialize())));
+        onStage?.('confirming');
         return transaction.identifiers()[0];
       },
     },
@@ -126,14 +144,14 @@ export async function callGameCircuit(
   address: string,
   profile: GameProfile,
   action: GameAction,
-  onProofStart?: () => void,
+  onStage?: (stage: TransactionStage) => void,
 ): Promise<TransactionResult> {
   if (!/^[0-9a-fA-F]{64}$/.test(address)) throw new Error('The game contract address is not configured.');
   const connection = await stage('Reading Lace connection failed', () => api.getConnectionStatus());
   if (connection.status !== 'connected' || connection.networkId !== networkId) throw new Error(`Connect Lace to ${networkId} first.`);
   const dust = await stage('Reading DUST balance failed', () => api.getDustBalance());
   if (dust.cap <= 0n || dust.balance <= 0n) throw new Error('Lace has no usable tDUST. Generate tDUST and wait for the wallet to sync.');
-  const providers = await createProviders(api, networkId);
+  const providers = await createProviders(api, networkId, onStage);
   const contractAddress = address as ContractAddress;
   providers.privateStateProvider.setContractAddress(contractAddress);
   const deployed = await stage('Loading the game contract failed', () => findDeployedContract(providers, {
@@ -142,7 +160,7 @@ export async function callGameCircuit(
     privateStateId: PRIVATE_STATE_ID,
     initialPrivateState: { secret: fromHex(profile.secret), mission: BigInt(profile.mission) },
   }));
-  onProofStart?.();
+  onStage?.('proving');
   const tx = await stage('Proving or submitting the game action failed', () => {
     if (action.kind === 'join') return deployed.callTx.join();
     if (action.kind === 'visit') return deployed.callTx.visit(fromHex(profile.id), BigInt(action.location));
@@ -154,14 +172,14 @@ export async function callGameCircuit(
 export async function deployGameContract(
   api: ConnectedAPI,
   networkId: string,
-  onProofStart?: () => void,
+  onStage?: (stage: TransactionStage) => void,
 ): Promise<string> {
   const connection = await stage('Reading Lace connection failed', () => api.getConnectionStatus());
   if (connection.status !== 'connected' || connection.networkId !== networkId) throw new Error(`Connect Lace to ${networkId} first.`);
   const dust = await stage('Reading DUST balance failed', () => api.getDustBalance());
   if (dust.cap <= 0n || dust.balance <= 0n) throw new Error('Lace has no usable tDUST. Generate tDUST and wait for the wallet to sync.');
-  const providers = await createProviders(api, networkId);
-  onProofStart?.();
+  const providers = await createProviders(api, networkId, onStage);
+  onStage?.('balancing');
   const deployed = await stage('Deploying the game contract failed', () => deployContract(providers, {
     compiledContract: compiledGameContract,
     privateStateId: PRIVATE_STATE_ID,

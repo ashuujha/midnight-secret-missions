@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CONTRACT_ADDRESS, MIDNIGHT_NETWORK, useMidnight } from './hooks/useMidnight';
-import type { GameAction, GameProfile, GameSnapshot, TransactionResult } from './midnight/game';
+import type { GameAction, GameProfile, GameSnapshot, TransactionResult, TransactionStage } from './midnight/game';
 import { friendlyCircuitError } from './utils/errors';
 
 const PLACES = [
@@ -29,7 +29,7 @@ export default function App() {
   const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null);
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
   const [profile, setProfile] = useState<GameProfile | null>(null);
-  const [phase, setPhase] = useState<'idle' | 'preparing' | 'proving'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'preparing' | TransactionStage>('idle');
   const [actionLabel, setActionLabel] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const [result, setResult] = useState<TransactionResult | null>(null);
@@ -54,6 +54,13 @@ export default function App() {
   }, [refresh]);
 
   useEffect(() => {
+    if (!import.meta.env.VITE_PROOF_SERVER_URL) return;
+    // Wake Render's sleeping free instance while the player reads the game.
+    void import('./midnight/prover-readiness').then(({ warmProofServer }) =>
+      warmProofServer().catch(() => undefined));
+  }, []);
+
+  useEffect(() => {
     let active = true;
     if (!wallet.address || !configured) { setProfile(null); return; }
     void import('./midnight/game').then(({ loadProfile }) => {
@@ -67,6 +74,13 @@ export default function App() {
   const readyToClaim = !!player && !!route && player.visits.length === 5 && followsRoute(player.visits, route);
   const busy = phase !== 'idle';
   const canPlay = wallet.status === 'connected' && !!wallet.connectedAPI && configured && !!snapshot && !busy;
+
+  useEffect(() => {
+    if (wallet.status !== 'connected' || !configured) return;
+    const circuit = !player ? 'join' : player.visits.length >= 4 ? 'claim' : 'visit';
+    void import('./midnight/game').then(({ prefetchGameCircuit }) =>
+      prefetchGameCircuit(circuit).catch(() => undefined));
+  }, [wallet.status, player?.visits.length]);
 
   const perform = async (action: GameAction, label: string) => {
     if (!wallet.connectedAPI || !wallet.address || !configured || busy) return;
@@ -85,7 +99,7 @@ export default function App() {
       if (!current) throw new Error('Your private mission was not found in this browser. Join a new round.');
       const submitted = await game.callGameCircuit(
         wallet.connectedAPI, wallet.networkId, CONTRACT_ADDRESS, current, action,
-        () => setPhase('proving'),
+        setPhase,
       );
       setResult(submitted);
       await refresh();
@@ -105,7 +119,7 @@ export default function App() {
     setActionLabel('Deploying game contract');
     try {
       const { deployGameContract } = await import('./midnight/game');
-      const address = await deployGameContract(wallet.connectedAPI, wallet.networkId, () => setPhase('proving'));
+      const address = await deployGameContract(wallet.connectedAPI, wallet.networkId, setPhase);
       localStorage.setItem('secret-missions-dev-contract', address);
       setDeployedAddress(address);
     } catch (error) {
@@ -163,7 +177,7 @@ export default function App() {
             </aside>
           </div>
 
-          {busy && <div className="progress" role="status" aria-live="polite"><span className="spinner" /><div><strong>{phase === 'proving' ? 'Generating your zero knowledge proof…' : `${actionLabel}…`}</strong><p>Keep this tab open and approve the transaction in Lace when prompted.</p></div></div>}
+          {busy && <div className="progress" role="status" aria-live="polite"><span className="spinner" /><div><strong>{phase === 'proving' ? 'Generating your zero knowledge proof…' : phase === 'balancing' ? 'Preparing your Lace transaction…' : phase === 'submitting' ? 'Submitting to Midnight…' : phase === 'confirming' ? 'Waiting for Preprod confirmation…' : `${actionLabel}…`}</strong><p>Keep this tab open and approve the transaction in Lace when prompted.</p></div></div>}
           {actionError && <div className="notice warning" role="alert"><strong>Action could not finish</strong><span>{actionError}</span></div>}
           {result && <div className="notice success" role="status"><strong>Action recorded on Midnight</strong><span>Transaction <code>{short(result.txId)}</code> · Block {result.blockHeight}</span></div>}
         </section>
