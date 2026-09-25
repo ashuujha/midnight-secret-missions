@@ -80,6 +80,8 @@ npm run build
 
 The contract suite covers mission commitment, ordered visits, successful scoring, wrong routes, mission swapping, duplicate claims, and invalid actions.
 
+![Six passing contract tests](screenshots/test-output.png)
+
 ## CI/CD
 
 [GitHub Actions](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the Compact compiler, compiles the contract, runs tests, builds the production dApp, and checks the deployment script. The [first main-branch run passed](https://github.com/ashuujha/midnight-secret-missions/actions/runs/36164716354). Hosting configuration is in [`vercel.json`](vercel.json); deployment requires a new Vercel project with this folder as its root and the environment values above.
