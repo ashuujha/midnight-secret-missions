@@ -1,10 +1,10 @@
 # Secret Trail
 
-![CI](https://github.com/ashuujha/midnight-secret-missions/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/ashuujha/midnight-secret-trail/actions/workflows/ci.yml/badge.svg)
 
 > A multiplayer bluffing game where everyone sees your moves, but only you know which stops fulfill your secret mission.
 
-**Release status:** Secret Trail is the next version of the [public Secret Missions repository](https://github.com/ashuujha/midnight-secret-missions). Its new contract and frontend are on the `feature/secret-trail-challenges` branch. The [current Vercel site](https://midnight-secret-missions.vercel.app/) and Preprod address below still run the earlier Secret Missions rules. Secret Trail needs a fresh Preprod deployment and a complete wallet playthrough before the new version can replace them.
+**Release status:** Secret Trail is the next version of the [public game repository](https://github.com/ashuujha/midnight-secret-trail). Its new contract and frontend are on the `feature/secret-trail-challenges` branch. The [current Vercel site](https://midnight-secret-missions.vercel.app/) and Preprod address below still run the earlier Secret Missions rules. Secret Trail needs a fresh Preprod deployment and a complete wallet playthrough before the new version can replace them.
 
 ![Secret Trail desktop preview](screenshots/secret-trail-desktop-preview.png)
 
@@ -59,8 +59,8 @@ Compact smart contract and Midnight Preprod; React 19, TypeScript, Vite 7; Midni
 ## Setup & Run Locally
 
 ```bash
-git clone https://github.com/ashuujha/midnight-secret-missions.git
-cd midnight-secret-missions
+git clone https://github.com/ashuujha/midnight-secret-trail.git
+cd midnight-secret-trail
 git switch feature/secret-trail-challenges
 npm ci
 npm run compile
@@ -90,7 +90,7 @@ The suite checks the earlier contract, the new challenge and replay rules, and p
 
 ## CI/CD
 
-[GitHub Actions](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the Compact compiler, compiles the Secret Trail contract, runs tests, builds the production app, and typechecks the deployment script. The badge above currently reflects `main`, which still hosts V1. The feature branch needs a pull request and passing CI before the V2 deployment can replace it.
+[GitHub Actions](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the Compact compiler, compiles the Secret Trail contract, runs tests, builds the production app, and typechecks the deployment script. The [V2 draft pull request passed CI](https://github.com/ashuujha/midnight-secret-trail/actions/runs/36181598626). The badge above reflects `main`, which still hosts V1 until the new contract is deployed and the release is merged.
 
 ## Product Proposal
 
@@ -104,7 +104,7 @@ A one-minute **Secret Trail** recording is still needed: connect Lace; show a pr
 
 - ✓ Public GitHub repository and full documentation for this branch.
 - ✓ Compact contract compiles and local gameplay tests pass.
-- ✓ CI workflow and badge present; V2 pull-request run pending.
+- ✓ CI workflow and badge present; V2 pull-request run passed.
 - ✗ New Secret Trail Preprod contract and live V2 URL.
 - ✗ Full two-wallet live playthrough and game video.
 - ✗ Dedicated product X profile link.
