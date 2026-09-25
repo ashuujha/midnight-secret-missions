@@ -4,7 +4,7 @@
 
 > A multiplayer Midnight game where everyone sees your moves, but your mission stays private until a proof earns your point.
 
-Secret Missions is a new project built from the working wallet and proof integration in the [Midnight Private Counter](https://github.com/ashuujha/midnight-private-counter). It is currently a **local, testnet-ready prototype**. A new Preprod contract address and live deployment will be listed here only after they are verified; the counter's address is deliberately not reused.
+Secret Missions is a [separate public project](https://github.com/ashuujha/midnight-secret-missions) built from the working wallet and proof integration in the [Midnight Private Counter](https://github.com/ashuujha/midnight-private-counter). It is currently a **local, testnet-ready prototype**. A new Preprod contract address and live deployment will be listed here only after they are verified; the counter's address is deliberately not reused.
 
 ![Secret Missions desktop preview](screenshots/desktop-preview.png)
 
@@ -82,7 +82,7 @@ The contract suite covers mission commitment, ordered visits, successful scoring
 
 ## CI/CD
 
-[GitHub Actions](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the Compact compiler, compiles the contract, runs tests, builds the production dApp, and checks the deployment script. The badge becomes meaningful once this project is published and CI has run. Hosting configuration is in [`vercel.json`](vercel.json); deployment requires a new Vercel project with this folder as its root and the environment values above.
+[GitHub Actions](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the Compact compiler, compiles the contract, runs tests, builds the production dApp, and checks the deployment script. The [first main-branch run passed](https://github.com/ashuujha/midnight-secret-missions/actions/runs/36164716354). Hosting configuration is in [`vercel.json`](vercel.json); deployment requires a new Vercel project with this folder as its root and the environment values above.
 
 ## Preprod Deployment
 
@@ -103,4 +103,4 @@ See [PROPOSAL.md](PROPOSAL.md) for the product, privacy rationale, data model, a
 
 - Contract compilation, six local tests, and production build pass.
 - Preprod deployment, a verified address, a live Vercel URL, and a full wallet transaction test are still required.
-- The public GitHub repository and CI badge target must be connected to this separate project before presenting the badge as passing.
+- The [public repository](https://github.com/ashuujha/midnight-secret-missions), more than 10 meaningful commits, and passing CI badge are ready.
