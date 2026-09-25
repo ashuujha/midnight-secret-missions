@@ -4,7 +4,7 @@
 
 > A multiplayer Midnight game where everyone sees your moves, but your mission stays private until a proof earns your point.
 
-Secret Missions is a [separate public project](https://github.com/ashuujha/midnight-secret-missions) built from the working wallet and proof integration in the [Midnight Private Counter](https://github.com/ashuujha/midnight-private-counter). It is currently a **local, testnet-ready prototype**. A new Preprod contract address and live deployment will be listed here only after they are verified; the counter's address is deliberately not reused.
+Secret Missions is a [separate public project](https://github.com/ashuujha/midnight-secret-missions) built from the working wallet and proof integration in the [Midnight Private Counter](https://github.com/ashuujha/midnight-private-counter). Its own contract is deployed on Midnight Preprod. The counter's contract address is not reused.
 
 ![Secret Missions desktop preview](screenshots/desktop-preview.png)
 
@@ -12,15 +12,17 @@ The [mobile preview](screenshots/mobile-preview.png) shows the responsive first 
 
 ## Live Demo
 
-Deployment pending. Run the local app with the steps below. The interface loads without a contract address, but joining and moves require a deployed Secret Missions contract.
+[Play Secret Missions on Vercel](https://midnight-secret-missions.vercel.app/). The public world and leaderboard load from the deployed Midnight Preprod contract.
 
-In local development, you can connect a funded Preprod Lace wallet and select **Deploy with Lace** from the deployment notice. Save the returned address, reload to play locally, and add it to `VITE_CONTRACT_ADDRESS` when publishing the shared site. This action is only shown in local development.
+To submit moves, connect a funded Preprod Lace wallet, receive a mission, and make five public moves before claiming. Lace 2.4 may offer only a Local proof server; in that case, the wallet needs a prover on the player's own `localhost:6300`. The hosted site and Render prover do not change that wallet setting.
 
 ## Contract Address
 
 | Network | Address |
 | --- | --- |
-| Preprod | Pending deployment and on-chain verification |
+| [Preprod](https://preprod.midnightexplorer.com/) | `41faea462a257e1f01f171eea6a279e2746cc4165a80e0ba5d05b6fc5c5cda7e` |
+
+The Preprod indexer returned this contract's public ledger with `playerCount = 0` and `completedMissions = 0` immediately after deployment. The first wallet join and claim still need a live transaction test.
 
 ## What This Does
 
@@ -58,13 +60,14 @@ Compact smart contract and Midnight Preprod; React 19, TypeScript, Vite 7; Midni
 ## Setup & Run Locally
 
 ```bash
-cd /home/ashu/Projects/Midnight-Secret-Missions
+git clone https://github.com/ashuujha/midnight-secret-missions.git
+cd midnight-secret-missions
 npm ci
 npm run compile
 cat > .env.local <<'EOF'
 VITE_MIDNIGHT_NETWORK=preprod
-# After deploying: VITE_CONTRACT_ADDRESS=YOUR_NEW_64_CHARACTER_CONTRACT_ADDRESS
-# Optional: VITE_PROOF_SERVER_URL=https://your-proof-server.example
+VITE_CONTRACT_ADDRESS=41faea462a257e1f01f171eea6a279e2746cc4165a80e0ba5d05b6fc5c5cda7e
+VITE_PROOF_SERVER_URL=https://midnight-counter-prover.onrender.com
 EOF
 npm run dev
 ```
@@ -86,7 +89,7 @@ The contract suite covers mission commitment, ordered visits, successful scoring
 
 ## CI/CD
 
-[GitHub Actions](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the Compact compiler, compiles the contract, runs tests, builds the production dApp, and checks the deployment script. The [first main-branch run passed](https://github.com/ashuujha/midnight-secret-missions/actions/runs/36164716354). Hosting configuration is in [`vercel.json`](vercel.json); deployment requires a new Vercel project with this folder as its root and the environment values above.
+[GitHub Actions](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the Compact compiler, compiles the contract, runs tests, builds the production dApp, and checks the deployment script. The [first main-branch run passed](https://github.com/ashuujha/midnight-secret-missions/actions/runs/36164716354). The separate [Vercel project](https://vercel.com/ashuujha/midnight-secret-missions) is connected to this repository for deployment on pushes to `main`; its Node 22, Vite, and `dist` settings match [`vercel.json`](vercel.json).
 
 ## Preprod Deployment
 
@@ -106,5 +109,5 @@ See [PROPOSAL.md](PROPOSAL.md) for the product, privacy rationale, data model, a
 ## Development Status
 
 - Contract compilation, six local tests, and production build pass.
-- Preprod deployment, a verified address, a live Vercel URL, and a full wallet transaction test are still required.
+- The Preprod contract is deployed and visible to the indexer; the live Vercel site serves the board and proving assets. A full wallet gameplay transaction test is still required.
 - The [public repository](https://github.com/ashuujha/midnight-secret-missions), more than 10 meaningful commits, and passing CI badge are ready.
