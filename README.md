@@ -26,7 +26,7 @@ The site starts waking the hosted prover when the page opens and caches each cir
 | --- | --- | --- |
 | Preprod | `41faea462a257e1f01f171eea6a279e2746cc4165a80e0ba5d05b6fc5c5cda7e` | [View contract on Midnight Explorer](https://preprod.midnightexplorer.com/contracts/0x41faea462a257e1f01f171eea6a279e2746cc4165a80e0ba5d05b6fc5c5cda7e) |
 
-The Preprod indexer returned this contract's public ledger with `playerCount = 0` and `completedMissions = 0` immediately after deployment. The first wallet join and claim still need a live transaction test.
+The Preprod indexer confirms the deployed contract. At the September 26 check, its public ledger showed one joined player, one Library visit, and no completed mission; Midnight Explorer also shows a `visit` interaction. A complete five-visit claim still needs a live transaction test.
 
 ## What This Does
 
@@ -122,4 +122,4 @@ A one-minute recording of the **Secret Missions** flow is still needed. Show Lac
 - ✗ Dedicated product X profile: being created; add its public link above.
 - ✓ At least 15 commits in the product repository.
 - ✗ One-minute Secret Missions demo video: record and add the link here.
-- ✗ Full live wallet flow: a successful join, five visits, and claim on Preprod have not yet been verified. The contract's six gameplay tests pass locally.
+- ✗ Full live wallet flow: a join and one visit are visible on Preprod, but five visits and a successful claim have not yet been verified. The contract's six gameplay tests pass locally.
