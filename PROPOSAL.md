@@ -2,23 +2,26 @@
 
 ## What is the product, and who uses it?
 
-Secret Missions is an asynchronous competitive multiplayer game. Players join a shared Midnight contract, receive one private mission in their browser, and make up to five public visits to a four-location world. A mission is an ordered route of three locations; other visits can be placed between those stops. Players win a point only when a zero knowledge proof verifies that their public visit history contains their committed secret route. The current product is a testnet game for players, game communities, and developers exploring privacy as a game mechanic.
+Secret Trail is an asynchronous multiplayer strategy game for players who enjoy bluffing and deduction. A player receives a private ordered route of three locations, then makes five public visits. Two visits can be decoys. Other players watch the trail and may stake a challenge token if they think the route cannot be proved. The runner earns a point by proving that the committed route appears in the five visits. If the runner forfeits or misses the challenge deadline, the challenger earns the point and gets the token back. Players can start another round with a new private mission.
+
+The first playable level has five locations, eight possible missions, three route stops, two decoys, and a 20-minute challenge deadline. Challenge tokens are in-game counters with no monetary value. Later levels may add longer routes, more decoys, time constraints, and branching objectives; those are not part of this release.
 
 ## Why Midnight specifically?
 
-A transparent chain can verify a public route only if it knows the target route, which immediately gives away the player's objective. Midnight lets the player publish a commitment before moving, then prove later that the committed mission matches the ordered public actions without writing the mission to the ledger. Everyone can inspect the moves and the awarded point; the contract verifies the private condition. This creates strategic uncertainty in a shared public world.
+On a transparent chain, verifying a specific route normally requires publishing it, which would reveal which visits were decoys. Midnight lets the browser commit to a mission before the first move, then prove that the private mission occurs in the ordered public trail without writing the mission or decoy labels to the ledger. Everyone sees the visits, challenge stakes, deadlines, and scores. The verifier learns that the committed condition was met, not the route itself.
 
 ## Data Model
 
 | Data Point | Type | Disclosed To |
 | --- | --- | --- |
-| Player ID, derived from a random secret | Public ledger | Everyone |
-| Mission commitment | Public ledger | Everyone |
+| Player ID, round number, mission commitment | Public ledger | Everyone |
 | Five ordered location visits | Public ledger | Everyone |
-| Claimed status and leaderboard score | Public ledger | Everyone |
-| Identity secret and chosen mission route | Private witness in the player's browser | Player and any prover the player chooses to trust |
-| Proof that the committed route occurs in the public visit order | Zero knowledge proof | Verifiers learn validity, not the route |
+| Run and challenge status, challenger ID, deadline, scores, challenge tokens | Public ledger | Everyone |
+| Identity secret, mission number, mission salt, and decoy interpretation | Private witness stored in the player's browser | Player and any prover the player chooses to trust |
+| Proof that the committed route appears in order within the five visits | Zero-knowledge proof | Verifiers learn validity, not the route |
 
 ## Mainnet Feasibility
 
-The contract's core proof is bounded: eight route templates, five visits, and one claim per player identity. This makes a Preprod demonstration realistic. Before a production game, mission assignment needs a fair randomness protocol so a modified client cannot choose its preferred route; rounds need explicit start/end rules, wallet or credential binding, recovery for private mission state, and load testing for simultaneous players. Remote proof services also need a clear trust model because they may receive private proving inputs. No financial reward is planned until those issues are addressed.
+The first level has bounded computation: eight route templates and five visits per round. Contract tests cover a successful proof, challenge win and loss, forfeit, replay, and authorization. A new Preprod deployment and a complete wallet playthrough are still required before this version can be called live.
+
+Mainnet competition needs a fair mission-assignment protocol. The current browser selects a mission, so a modified client can choose an easy one. Public trails may narrow the route to one possibility, and multiple browser identities can manipulate a leaderboard. Before prizes or financial stakes, the game also needs identity or Sybil resistance, recovery for lost private state, privacy analysis of route inference, load tests, and a clear trust model for hosted proving services.
