@@ -71,7 +71,7 @@ export const friendlyCircuitError = (error: unknown, networkId: string): string 
     const walletProver = message.match(/wallet proof server: ([^)]+)\)/)?.[1];
     const status = message.match(/(?:code|status)=["']?(\d{3})\b/i)?.[1];
     if (walletProver && /^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(walletProver)) {
-      return `Lace is still using its local proof server (${walletProver}), so the transaction was not submitted. In Lace, open Settings → Midnight Settings → Proof Server, select Remote if available, and Save. Then reconnect Lace and retry. If Remote is unavailable, Lace needs a running local prover.`;
+      return `Lace could not use its local proof endpoint (${walletProver}), so the transaction was not submitted. Check ${walletProver}/ready. If it is down, run npm run proof:bridge in this project or start a local proof server, then retry.`;
     }
     const service = walletProver ? ` Lace proof server: ${walletProver}.` : '';
     const detail = status ? ` Its request returned HTTP ${status}.` : '';

@@ -14,7 +14,8 @@
     "compile": "compact compile contracts/secret-missions.compact managed/secret-missions",
     "test": "tsx --test tests/*.test.ts",
     "check": "npm run compile && npm test && npm run build && npm run typecheck:deploy",
-    "deploy:preprod": "tsx deploy/deploy.ts --network preprod"
+    "deploy:preprod": "tsx deploy/deploy.ts --network preprod",
+    "proof:bridge": "node scripts/lace-proof-bridge.mjs"
   },
   "dependencies": {
     "@midnight-ntwrk/compact-js": "2.5.1",
