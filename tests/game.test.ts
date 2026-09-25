@@ -82,6 +82,8 @@ describe('secret mission contract', () => {
     assert.throws(() => game.contract.impureCircuits.claim(game.context, id), /Complete five public visits first/);
     assert.throws(() => game.contract.impureCircuits.visit(game.context, new Uint8Array(32), 3n), /Join the game first/);
     assert.throws(() => game.contract.impureCircuits.visit(game.context, id, 4n), /Unknown location/);
+    game.context.currentPrivateState.secret = new Uint8Array(32);
+    assert.throws(() => game.contract.impureCircuits.visit(game.context, id, 3n), /Only the player can move/);
   });
 
   it('assigns eight valid routes and checks ordered subsequences', () => {

@@ -65,7 +65,7 @@ export default function App() {
   const route = profile ? ROUTES[profile.mission] : null;
   const readyToClaim = !!player && !!route && player.visits.length === 5 && followsRoute(player.visits, route);
   const busy = phase !== 'idle';
-  const canPlay = wallet.status === 'connected' && !!wallet.connectedAPI && configured && !busy;
+  const canPlay = wallet.status === 'connected' && !!wallet.connectedAPI && configured && !!snapshot && !busy;
 
   const perform = async (action: GameAction, label: string) => {
     if (!wallet.connectedAPI || !wallet.address || !configured || busy) return;
@@ -124,6 +124,7 @@ export default function App() {
           <div className="section-heading"><div><span className="section-kicker">THE LIVE GAME / SEASON ONE</span><h2>Your next move is public.<br /><em>Your reason is yours.</em></h2></div><p>Five visible visits. One hidden three stop route. A Midnight proof decides whether you completed it.</p></div>
 
           {!configured && <div className="notice" role="alert"><strong>Deployment needed</strong><span>Set VITE_CONTRACT_ADDRESS to the deployed Secret Missions contract to enable live play.</span></div>}
+          {configured && !snapshot && !snapshotError && <div className="notice" role="status"><strong>Syncing world</strong><span>Reading the public contract state from Midnight…</span></div>}
           {snapshotError && configured && <div className="notice warning" role="alert"><strong>World sync interrupted</strong><span>{snapshotError}</span><button type="button" onClick={() => void refresh()}>Retry</button></div>}
 
           <div className="stats-row"><div><span>EXPLORERS</span><strong>{snapshot?.joined ?? '—'}</strong></div><div><span>MISSIONS PROVED</span><strong>{snapshot?.completed ?? '—'}</strong></div><div><span>YOUR VISITS</span><strong>{player?.visits.length ?? 0}<small> / 5</small></strong></div><div><span>YOUR SCORE</span><strong>{player?.score ?? 0}</strong></div></div>
