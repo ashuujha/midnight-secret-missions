@@ -1,0 +1,11 @@
+node_modules
+dist/
+.vite/
+.vercel/
+.env*
+.midnight-state.json
+.midnight-wallet-state/
+midnight-level-db/
+public/keys/
+public/zkir/
+*.log
