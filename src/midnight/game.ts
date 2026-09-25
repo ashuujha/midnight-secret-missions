@@ -221,24 +221,28 @@ export async function readGameSnapshot(address: string, networkId: string): Prom
   );
   const state = await provider.queryContractState(address as ContractAddress);
   if (!state) throw new Error('The game contract was not found on the selected network.');
-  const publicState = Game.ledger(state.data);
-  const players: Player[] = Array.from(publicState.moveCounts, ([key, count]) => {
-    const visits = [publicState.firstVisits, publicState.secondVisits, publicState.thirdVisits,
-      publicState.fourthVisits, publicState.fifthVisits]
-      .slice(0, Number(count))
-      .map((map) => Number(map.lookup(key)));
-    const challengeStatus = Number(publicState.challengeStatus.lookup(key));
-    return {
-      id: toHex(key), visits, score: Number(publicState.scores.lookup(key)),
-      round: Number(publicState.rounds.lookup(key)),
-      runStatus: Number(publicState.runStatus.lookup(key)),
-      challengeTokens: Number(publicState.challengeTokens.lookup(key)),
-      challengeStatus,
-      challengerId: challengeStatus ? toHex(publicState.challengeBy.lookup(key)) : null,
-      challengeDeadline: challengeStatus ? Number(publicState.challengeDeadlines.lookup(key)) : null,
-    };
-  });
-  players.sort((a, b) => b.score - a.score || b.visits.length - a.visits.length);
-  return { players, completed: Number(publicState.completedMissions), joined: Number(publicState.playerCount),
-    challengesWon: Number(publicState.successfulChallenges) };
+  try {
+    const publicState = Game.ledger(state.data);
+    const players: Player[] = Array.from(publicState.moveCounts, ([key, count]) => {
+      const visits = [publicState.firstVisits, publicState.secondVisits, publicState.thirdVisits,
+        publicState.fourthVisits, publicState.fifthVisits]
+        .slice(0, Number(count))
+        .map((map) => Number(map.lookup(key)));
+      const challengeStatus = Number(publicState.challengeStatus.lookup(key));
+      return {
+        id: toHex(key), visits, score: Number(publicState.scores.lookup(key)),
+        round: Number(publicState.rounds.lookup(key)),
+        runStatus: Number(publicState.runStatus.lookup(key)),
+        challengeTokens: Number(publicState.challengeTokens.lookup(key)),
+        challengeStatus,
+        challengerId: challengeStatus ? toHex(publicState.challengeBy.lookup(key)) : null,
+        challengeDeadline: challengeStatus ? Number(publicState.challengeDeadlines.lookup(key)) : null,
+      };
+    });
+    players.sort((a, b) => b.score - a.score || b.visits.length - a.visits.length);
+    return { players, completed: Number(publicState.completedMissions), joined: Number(publicState.playerCount),
+      challengesWon: Number(publicState.successfulChallenges) };
+  } catch {
+    throw new Error('The configured address is not a Secret Trail contract. Deploy the new contract and update VITE_CONTRACT_ADDRESS.');
+  }
 }
