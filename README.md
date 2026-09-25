@@ -71,6 +71,8 @@ npm run dev
 
 Open the URL printed by Vite. Connect Lace, receive a mission, record five visits, and claim. If `VITE_PROOF_SERVER_URL` is omitted, the app delegates circuit proving to Lace's configured provider. A site-level hosted prover setting does not change Lace's own proof server used for transaction balancing.
 
+If **Deploy with Lace** fails while a `/check` request is pending or fails, inspect the proof-server URL in Lace's Midnight settings. Deployment has no game-circuit proof to send through the dApp's provider; Lace uses its own configured prover to balance the transaction. For the shared demo prover, set Lace to the base URL `https://midnight-counter-prover.onrender.com` (without `/check` or `/ready`), open its [`/ready` endpoint](https://midnight-counter-prover.onrender.com/ready) until it responds, then retry. The free Render instance may need time to wake after inactivity. If `/check` still fails, note its HTTP status and host; a healthy `/ready` response alone does not prove that a wallet transaction can be balanced.
+
 ## Run Tests
 
 ```bash

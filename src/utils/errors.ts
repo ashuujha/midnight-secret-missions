@@ -67,10 +67,12 @@ export const friendlyCircuitError = (error: unknown, networkId: string): string 
   if (/timeout|timed out/.test(normalized)) {
     return 'The request timed out. Check Lace for a submitted or pending transaction before trying again.';
   }
-  if (/lace transaction balancing failed/.test(normalized) && /service returned an unknown error/.test(normalized)) {
+  if (/lace transaction balancing failed/.test(normalized)) {
     const walletProver = message.match(/wallet proof server: ([^)]+)\)/)?.[1];
+    const status = message.match(/(?:code|status)=["']?(\d{3})\b/i)?.[1];
     const service = walletProver ? ` Lace proof server: ${walletProver}.` : '';
-    return `The circuit proof succeeded, but Lace could not balance the transaction. The dApp has not submitted it.${service} Check Lace's own proof-server setting, wallet sync, and available tDUST. The site's hosted prover does not change Lace's setting.`;
+    const detail = status ? ` Its request returned HTTP ${status}.` : '';
+    return `Lace could not balance the transaction, so it was not submitted.${service}${detail} Check Lace's proof-server setting, wallet sync, and available tDUST. The site's proof-server setting does not change Lace's.`;
   }
   if (/proof service request failed/.test(normalized) && /failed to fetch|networkerror|network request|load failed/.test(normalized)) {
     return 'The proof service could not be reached. Its address may be unavailable or the service may be offline. Try again once the proof service is available.';
