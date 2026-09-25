@@ -14,7 +14,8 @@ import { friendlyWalletError } from '../utils/errors';
 
 export const MIDNIGHT_NETWORK = import.meta.env.VITE_MIDNIGHT_NETWORK ?? 'preprod';
 export const CONTRACT_ADDRESS =
-  import.meta.env.VITE_CONTRACT_ADDRESS ?? '';
+  import.meta.env.VITE_CONTRACT_ADDRESS?.trim() ||
+  (import.meta.env.DEV ? localStorage.getItem('secret-missions-dev-contract') ?? '' : '');
 
 type WalletStatus = 'detecting' | 'not-installed' | 'ready' | 'connecting' | 'connected';
 type DustBalance = {

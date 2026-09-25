@@ -14,6 +14,8 @@ The [mobile preview](screenshots/mobile-preview.png) shows the responsive first 
 
 Deployment pending. Run the local app with the steps below. The interface loads without a contract address, but joining and moves require a deployed Secret Missions contract.
 
+In local development, you can connect a funded Preprod Lace wallet and select **Deploy with Lace** from the deployment notice. Save the returned address, reload to play locally, and add it to `VITE_CONTRACT_ADDRESS` when publishing the shared site. This action is only shown in local development.
+
 ## Contract Address
 
 | Network | Address |
@@ -61,7 +63,7 @@ npm ci
 npm run compile
 cat > .env.local <<'EOF'
 VITE_MIDNIGHT_NETWORK=preprod
-VITE_CONTRACT_ADDRESS=YOUR_NEW_64_CHARACTER_CONTRACT_ADDRESS
+# After deploying: VITE_CONTRACT_ADDRESS=YOUR_NEW_64_CHARACTER_CONTRACT_ADDRESS
 # Optional: VITE_PROOF_SERVER_URL=https://your-proof-server.example
 EOF
 npm run dev

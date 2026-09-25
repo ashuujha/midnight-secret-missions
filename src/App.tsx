@@ -33,6 +33,7 @@ export default function App() {
   const [actionLabel, setActionLabel] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const [result, setResult] = useState<TransactionResult | null>(null);
+  const [deployedAddress, setDeployedAddress] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!configured) return;
@@ -97,6 +98,23 @@ export default function App() {
     }
   };
 
+  const deployLocally = async () => {
+    if (!wallet.connectedAPI || busy || !import.meta.env.DEV) return;
+    setActionError(null);
+    setPhase('preparing');
+    setActionLabel('Deploying game contract');
+    try {
+      const { deployGameContract } = await import('./midnight/game');
+      const address = await deployGameContract(wallet.connectedAPI, wallet.networkId, () => setPhase('proving'));
+      localStorage.setItem('secret-missions-dev-contract', address);
+      setDeployedAddress(address);
+    } catch (error) {
+      setActionError(friendlyCircuitError(error, wallet.networkId));
+    } finally {
+      setPhase('idle');
+    }
+  };
+
   const leaderboard = useMemo(() => snapshot?.players.filter((entry) => entry.score > 0) ?? [], [snapshot]);
   const otherPlayers = useMemo(() => snapshot?.players.filter((entry) => entry.visits.length > 0).slice(0, 8) ?? [], [snapshot]);
 
@@ -123,7 +141,8 @@ export default function App() {
         <section id="play" className="play-section">
           <div className="section-heading"><div><span className="section-kicker">THE LIVE GAME / SEASON ONE</span><h2>Your next move is public.<br /><em>Your reason is yours.</em></h2></div><p>Five visible visits. One hidden three stop route. A Midnight proof decides whether you completed it.</p></div>
 
-          {!configured && <div className="notice" role="alert"><strong>Deployment needed</strong><span>Set VITE_CONTRACT_ADDRESS to the deployed Secret Missions contract to enable live play.</span></div>}
+          {!configured && <div className="notice" role="alert"><strong>Deployment needed</strong><span>Set VITE_CONTRACT_ADDRESS to the deployed Secret Missions contract to enable live play. {import.meta.env.DEV && wallet.status === 'connected' && <button type="button" disabled={busy} onClick={() => void deployLocally()}>Deploy with Lace</button>}</span></div>}
+          {deployedAddress && <div className="notice success" role="status"><strong>Contract deployed</strong><span><code>{deployedAddress}</code> — save this address for Vercel, then reload the page to play locally.</span><button type="button" onClick={() => window.location.reload()}>Reload</button></div>}
           {configured && !snapshot && !snapshotError && <div className="notice" role="status"><strong>Syncing world</strong><span>Reading the public contract state from Midnight…</span></div>}
           {snapshotError && configured && <div className="notice warning" role="alert"><strong>World sync interrupted</strong><span>{snapshotError}</span><button type="button" onClick={() => void refresh()}>Retry</button></div>}
 

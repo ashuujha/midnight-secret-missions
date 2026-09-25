@@ -1,6 +1,6 @@
 import type { ConnectedAPI } from '@midnight-ntwrk/dapp-connector-api';
 import { CompiledContract } from '@midnight-ntwrk/compact-js';
-import { findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
+import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-config-provider';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
@@ -149,6 +149,25 @@ export async function callGameCircuit(
     return deployed.callTx.claim(fromHex(profile.id));
   });
   return { txId: tx.public.txId, blockHeight: tx.public.blockHeight.toString() };
+}
+
+export async function deployGameContract(
+  api: ConnectedAPI,
+  networkId: string,
+  onProofStart?: () => void,
+): Promise<string> {
+  const connection = await stage('Reading Lace connection failed', () => api.getConnectionStatus());
+  if (connection.status !== 'connected' || connection.networkId !== networkId) throw new Error(`Connect Lace to ${networkId} first.`);
+  const dust = await stage('Reading DUST balance failed', () => api.getDustBalance());
+  if (dust.cap <= 0n || dust.balance <= 0n) throw new Error('Lace has no usable tDUST. Generate tDUST and wait for the wallet to sync.');
+  const providers = await createProviders(api, networkId);
+  onProofStart?.();
+  const deployed = await stage('Deploying the game contract failed', () => deployContract(providers, {
+    compiledContract: compiledGameContract,
+    privateStateId: PRIVATE_STATE_ID,
+    initialPrivateState: { secret: new Uint8Array(32), mission: 0n },
+  }));
+  return deployed.deployTxData.public.contractAddress;
 }
 
 export async function readGameSnapshot(address: string, networkId: string): Promise<GameSnapshot> {
