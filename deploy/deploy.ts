@@ -1,5 +1,5 @@
 /**
- * Deploy the Secret Missions contract to a Midnight network.
+ * Deploy the Secret Trail contract to a Midnight network.
  *
  * Non-interactive: scaffold → npm run setup runs straight through.
  * No readline prompts, no .midnight-seed file.
@@ -24,7 +24,7 @@ import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-j
 globalThis.WebSocket = WebSocket;
 
 // Identifier under which this contract's private state is stored locally.
-const PRIVATE_STATE_ID = 'secretMissionState';
+const PRIVATE_STATE_ID = 'secretTrailState';
 
 // Upper bound on the DUST wait. A healthy local devnet produces DUST within
 // seconds of registration; anything approaching this means the node, the
@@ -75,7 +75,7 @@ async function waitForProofServer(maxAttempts = 60, delayMs = 2000): Promise<boo
 // ─── Compiled contract loading ─────────────────────────────────────────────────
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const zkConfigPath = path.resolve(__dirname, '..', 'managed', 'secret-missions');
+const zkConfigPath = path.resolve(__dirname, '..', 'managed', 'secret-trail');
 const contractPath = path.join(zkConfigPath, 'contract', 'index.js');
 
 if (!fs.existsSync(contractPath)) {
@@ -86,15 +86,18 @@ if (!fs.existsSync(contractPath)) {
 const Game = await import(pathToFileURL(contractPath).href);
 
 const gameWitnesses = {
-  identitySecret(context: { privateState: { secret: Uint8Array; mission: bigint } }) {
+  identitySecret(context: { privateState: { secret: Uint8Array; mission: bigint; salt: Uint8Array } }) {
     return [context.privateState, context.privateState.secret] as const;
   },
-  hiddenMission(context: { privateState: { secret: Uint8Array; mission: bigint } }) {
+  hiddenMission(context: { privateState: { secret: Uint8Array; mission: bigint; salt: Uint8Array } }) {
     return [context.privateState, context.privateState.mission] as const;
+  },
+  missionSalt(context: { privateState: { secret: Uint8Array; mission: bigint; salt: Uint8Array } }) {
+    return [context.privateState, context.privateState.salt] as const;
   },
 };
 
-const compiledContract = CompiledContract.make('secret-missions', Game.Contract).pipe(
+const compiledContract = CompiledContract.make('secret-trail', Game.Contract).pipe(
   (CompiledContract.withWitnesses as any)(gameWitnesses),
   (CompiledContract.withCompiledFileAssets as any)(zkConfigPath),
 );
@@ -130,7 +133,7 @@ async function createProviders(walletCtx: WalletContext) {
 
   return {
     privateStateProvider: levelPrivateStateProvider({
-      privateStateStoreName: 'secret-missions-state',
+      privateStateStoreName: 'secret-trail-state',
       accountId,
       privateStoragePasswordProvider: () => privateStatePassword,
     }),
@@ -146,7 +149,7 @@ async function createProviders(walletCtx: WalletContext) {
 
 async function main() {
   console.log('\n╔══════════════════════════════════════════════════════════════╗');
-  console.log(`║  Deploy Secret Missions to ${network}`);
+  console.log(`║  Deploy Secret Trail to ${network}`);
   console.log('╚══════════════════════════════════════════════════════════════╝\n');
 
   const seed = SEED;
@@ -326,7 +329,7 @@ async function main() {
         compiledContract: compiledContract as any,
         args: [],
         privateStateId: PRIVATE_STATE_ID,
-        initialPrivateState: { secret: new Uint8Array(32), mission: 0n },
+        initialPrivateState: { secret: new Uint8Array(32), mission: 0n, salt: new Uint8Array(32) },
       });
       break;
     } catch (err: any) {
@@ -395,7 +398,7 @@ async function main() {
   await persistWalletState(network, walletCtx);
   await walletCtx.wallet.stop();
   console.log('─── Deployment complete ────────────────────────────────────────\n');
-  console.log(`  Secret Missions is live on ${network}.\n`);
+  console.log(`  Secret Trail is live on ${network}.\n`);
 }
 
 main().catch((err) => {

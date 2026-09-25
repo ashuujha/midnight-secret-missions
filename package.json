@@ -1,9 +1,9 @@
 {
-  "name": "midnight-secret-missions",
+  "name": "midnight-secret-trail",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A multiplayer Midnight game with public moves and private missions.",
+  "description": "A multiplayer Midnight game of public trails, private missions, and provable challenges.",
   "scripts": {
     "dev": "vite",
     "predev": "node scripts/copy-zk-assets.mjs",
@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "typecheck:deploy": "tsc --noEmit -p tsconfig.deploy.json",
-    "compile": "compact compile contracts/secret-missions.compact managed/secret-missions",
+    "compile": "compact compile contracts/secret-trail.compact managed/secret-trail",
     "test": "tsx --test tests/*.test.ts",
     "check": "npm run compile && npm test && npm run build && npm run typecheck:deploy",
     "deploy:preprod": "tsx deploy/deploy.ts --network preprod",

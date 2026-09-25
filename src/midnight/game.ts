@@ -19,24 +19,35 @@ import {
   type ProofProvider,
   type UnboundTransaction,
 } from '@midnight-ntwrk/midnight-js-types';
-import * as Game from '../../managed/secret-missions/contract/index.js';
+import * as Game from '../../managed/secret-trail/contract/index.js';
 import { inMemoryPrivateStateProvider } from '../in-memory-private-state-provider';
 import { getErrorMessage, getProofServerOrigin } from '../utils/errors';
 import { CachedZkConfigProvider } from './cached-zk-config';
 import { warmProofServer } from './prover-readiness';
 
-export const LOCATIONS = ['Harbor', 'Library', 'Observatory', 'Market'] as const;
-export type GameProfile = { secret: string; mission: number; id: string };
-export type Player = { id: string; visits: number[]; score: number; claimed: boolean };
-export type GameSnapshot = { players: Player[]; completed: number; joined: number };
-export type GameAction = { kind: 'join' } | { kind: 'visit'; location: number } | { kind: 'claim' };
+export const LOCATIONS = ['Museum', 'Cafe', 'Stadium', 'Park', 'Mall'] as const;
+export type GameProfile = { secret: string; mission: number; salt: string; id: string };
+export type Player = {
+  id: string; visits: number[]; score: number; round: number; runStatus: number;
+  challengeTokens: number; challengeStatus: number; challengerId: string | null;
+  challengeDeadline: number | null;
+};
+export type GameSnapshot = { players: Player[]; completed: number; joined: number; challengesWon: number };
+export type GameAction =
+  | { kind: 'join' }
+  | { kind: 'visit'; location: number }
+  | { kind: 'claim' }
+  | { kind: 'challenge'; targetId: string }
+  | { kind: 'resolve'; targetId: string }
+  | { kind: 'forfeit' }
+  | { kind: 'nextRound' };
 export type TransactionResult = { txId: string; blockHeight: string };
 export type TransactionStage = 'proving' | 'balancing' | 'submitting' | 'confirming';
 
-const PRIVATE_STATE_ID = 'secretMissionState';
+const PRIVATE_STATE_ID = 'secretTrailState';
 type PrivateStateId = typeof PRIVATE_STATE_ID;
-type CircuitKeys = 'join' | 'visit' | 'claim';
-type PrivateState = { secret: Uint8Array; mission: bigint };
+type CircuitKeys = 'join' | 'visit' | 'claim' | 'challenge' | 'resolveChallenge' | 'forfeit' | 'nextRound';
+type PrivateState = { secret: Uint8Array; mission: bigint; salt: Uint8Array };
 type Providers = MidnightProviders<CircuitKeys, PrivateStateId, PrivateState>;
 let browserZkConfigProvider: CachedZkConfigProvider<CircuitKeys> | undefined;
 
@@ -51,17 +62,24 @@ export function prefetchGameCircuit(circuit: CircuitKeys): Promise<unknown> {
 const witnesses: Game.Witnesses<PrivateState> = {
   identitySecret(context) { return [context.privateState, context.privateState.secret]; },
   hiddenMission(context) { return [context.privateState, context.privateState.mission]; },
+  missionSalt(context) { return [context.privateState, context.privateState.salt]; },
 };
 
-export const compiledGameContract = CompiledContract.make('secret-missions', Game.Contract).pipe(
+export const compiledGameContract = CompiledContract.make('secret-trail', Game.Contract).pipe(
   CompiledContract.withWitnesses(witnesses),
-  CompiledContract.withCompiledFileAssets('./managed/secret-missions'),
+  CompiledContract.withCompiledFileAssets('./managed/secret-trail'),
 );
 
 export function createProfile(): GameProfile {
   const secret = crypto.getRandomValues(new Uint8Array(32));
   const mission = crypto.getRandomValues(new Uint8Array(1))[0] % 8;
-  return { secret: toHex(secret), mission, id: toHex(Game.pureCircuits.playerId(secret)) };
+  const salt = crypto.getRandomValues(new Uint8Array(32));
+  return { secret: toHex(secret), mission, salt: toHex(salt), id: toHex(Game.pureCircuits.playerId(secret)) };
+}
+
+export function nextRoundProfile(profile: GameProfile): GameProfile {
+  return { ...profile, mission: crypto.getRandomValues(new Uint8Array(1))[0] % 8,
+    salt: toHex(crypto.getRandomValues(new Uint8Array(32))) };
 }
 
 export function missionRoute(mission: number): number[] {
@@ -74,16 +92,17 @@ export function missionRoute(mission: number): number[] {
   ];
 }
 
-const storageKey = (wallet: string, contract: string) => `secret-missions:v1:${contract}:${wallet}`;
+const storageKey = (wallet: string, contract: string) => `secret-trail:v2:${contract}:${wallet}`;
 
 export function loadProfile(wallet: string, contract: string): GameProfile | null {
   try {
     const raw = localStorage.getItem(storageKey(wallet, contract));
     if (!raw) return null;
     const value = JSON.parse(raw) as GameProfile;
-    if (!/^[0-9a-f]{64}$/.test(value.secret) || !Number.isInteger(value.mission) || value.mission < 0 || value.mission > 7) return null;
+    if (!/^[0-9a-f]{64}$/.test(value.secret) || !/^[0-9a-f]{64}$/.test(value.salt)
+      || !Number.isInteger(value.mission) || value.mission < 0 || value.mission > 7) return null;
     const id = toHex(Game.pureCircuits.playerId(fromHex(value.secret)));
-    return { secret: value.secret, mission: value.mission, id };
+    return { secret: value.secret, mission: value.mission, salt: value.salt, id };
   } catch { return null; }
 }
 
@@ -158,13 +177,17 @@ export async function callGameCircuit(
     contractAddress,
     compiledContract: compiledGameContract,
     privateStateId: PRIVATE_STATE_ID,
-    initialPrivateState: { secret: fromHex(profile.secret), mission: BigInt(profile.mission) },
+    initialPrivateState: { secret: fromHex(profile.secret), mission: BigInt(profile.mission), salt: fromHex(profile.salt) },
   }));
   onStage?.('proving');
   const tx = await stage('Proving or submitting the game action failed', () => {
     if (action.kind === 'join') return deployed.callTx.join();
     if (action.kind === 'visit') return deployed.callTx.visit(fromHex(profile.id), BigInt(action.location));
-    return deployed.callTx.claim(fromHex(profile.id));
+    if (action.kind === 'claim') return deployed.callTx.claim(fromHex(profile.id));
+    if (action.kind === 'challenge') return deployed.callTx.challenge(fromHex(profile.id), fromHex(action.targetId), BigInt(Date.now()));
+    if (action.kind === 'resolve') return deployed.callTx.resolveChallenge(fromHex(action.targetId));
+    if (action.kind === 'forfeit') return deployed.callTx.forfeit(fromHex(profile.id));
+    return deployed.callTx.nextRound(fromHex(profile.id));
   });
   return { txId: tx.public.txId, blockHeight: tx.public.blockHeight.toString() };
 }
@@ -183,7 +206,7 @@ export async function deployGameContract(
   const deployed = await stage('Deploying the game contract failed', () => deployContract(providers, {
     compiledContract: compiledGameContract,
     privateStateId: PRIVATE_STATE_ID,
-    initialPrivateState: { secret: new Uint8Array(32), mission: 0n },
+    initialPrivateState: { secret: new Uint8Array(32), mission: 0n, salt: new Uint8Array(32) },
   }));
   return deployed.deployTxData.public.contractAddress;
 }
@@ -202,13 +225,20 @@ export async function readGameSnapshot(address: string, networkId: string): Prom
   const players: Player[] = Array.from(publicState.moveCounts, ([key, count]) => {
     const visits = [publicState.firstVisits, publicState.secondVisits, publicState.thirdVisits,
       publicState.fourthVisits, publicState.fifthVisits]
-      .filter((map) => map.member(key))
+      .slice(0, Number(count))
       .map((map) => Number(map.lookup(key)));
+    const challengeStatus = Number(publicState.challengeStatus.lookup(key));
     return {
       id: toHex(key), visits, score: Number(publicState.scores.lookup(key)),
-      claimed: publicState.claimed.member(key),
+      round: Number(publicState.rounds.lookup(key)),
+      runStatus: Number(publicState.runStatus.lookup(key)),
+      challengeTokens: Number(publicState.challengeTokens.lookup(key)),
+      challengeStatus,
+      challengerId: challengeStatus ? toHex(publicState.challengeBy.lookup(key)) : null,
+      challengeDeadline: challengeStatus ? Number(publicState.challengeDeadlines.lookup(key)) : null,
     };
   });
   players.sort((a, b) => b.score - a.score || b.visits.length - a.visits.length);
-  return { players, completed: Number(publicState.completedMissions), joined: Number(publicState.playerCount) };
+  return { players, completed: Number(publicState.completedMissions), joined: Number(publicState.playerCount),
+    challengesWon: Number(publicState.successfulChallenges) };
 }
