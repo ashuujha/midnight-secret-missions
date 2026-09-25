@@ -4,15 +4,15 @@
 
 > A multiplayer bluffing game where everyone sees your moves, but only you know which stops fulfill your secret mission.
 
-**Release status:** Secret Trail is the next version of the [public game repository](https://github.com/ashuujha/midnight-secret-trail). Its new contract and frontend are on the `feature/secret-trail-challenges` branch. The [current Vercel site](https://midnight-secret-missions.vercel.app/) and Preprod address below still run the earlier Secret Missions rules. Secret Trail needs a fresh Preprod deployment and a complete wallet playthrough before the new version can replace them.
+**Release status:** Secret Trail Level 1 is deployed on Midnight Preprod and served from [Vercel](https://midnight-secret-trail.vercel.app/). The contract is reachable through the Preprod indexer. A complete two-wallet challenge round has not yet been verified on-chain.
 
-![Secret Trail desktop preview](screenshots/secret-trail-desktop-preview.png)
+![Secret Trail desktop UI on Vercel](screenshots/secret-trail-desktop.png)
 
-[Mobile preview](screenshots/secret-trail-mobile-preview.png) · These show the local V2 interface before its Preprod deployment.
+[Mobile UI screenshot](screenshots/secret-trail-mobile.png) · Both captures show the deployed Vercel interface.
 
 ## Live Demo
 
-[Play the currently deployed Secret Missions game](https://midnight-secret-missions.vercel.app/). This is the previous version, not a Secret Trail challenge demo.
+[Play Secret Trail](https://midnight-secret-trail.vercel.app/). The public board reads the live V2 Preprod contract. To submit wallet transactions with Lace, follow the proof-server instructions below.
 
 A dedicated Secret Trail product X profile and a one-minute video of its full wallet flow have not been published yet.
 
@@ -20,8 +20,8 @@ A dedicated Secret Trail product X profile and a one-minute video of its full wa
 
 | Version | Network | Address | Status |
 | --- | --- | --- | --- |
-| Secret Missions V1 | Preprod | [`41faea462a257e1f01f171eea6a279e2746cc4165a80e0ba5d05b6fc5c5cda7e`](https://preprod.midnightexplorer.com/contracts/0x41faea462a257e1f01f171eea6a279e2746cc4165a80e0ba5d05b6fc5c5cda7e) | Live; incompatible with Secret Trail |
-| Secret Trail V2 | Preprod | Pending Lace deployment | Contract compiled and tested locally |
+| Secret Trail V2 | Preprod | [`61eafc2202ab691039994916cf4f5821dd97eee8df489872862aee472f79cc63`](https://preprod.midnightexplorer.com/contracts/0x61eafc2202ab691039994916cf4f5821dd97eee8df489872862aee472f79cc63) | Deployed and connected to Vercel |
+| Secret Missions V1 | Preprod | [`41faea462a257e1f01f171eea6a279e2746cc4165a80e0ba5d05b6fc5c5cda7e`](https://preprod.midnightexplorer.com/contracts/0x41faea462a257e1f01f171eea6a279e2746cc4165a80e0ba5d05b6fc5c5cda7e) | Earlier contract, no longer used by the site |
 
 Never point the Secret Trail frontend at the V1 address. The two contracts have different ledger schemas and circuits.
 
@@ -54,19 +54,18 @@ Compact smart contract and Midnight Preprod; React 19, TypeScript, Vite 7; Midni
 - Node.js 22 and npm.
 - Compact CLI 0.5.2 with compiler 0.31.1; see the [Compact installation guide](https://docs.midnight.network/compact/compilation-and-tooling).
 - Lace with Midnight Preprod enabled, usable tDUST, and a working proof service.
-- A **new Secret Trail Preprod contract address** for live transactions.
+- The deployed Secret Trail Preprod contract address shown above for live transactions.
 
 ## Setup & Run Locally
 
 ```bash
 git clone https://github.com/ashuujha/midnight-secret-trail.git
 cd midnight-secret-trail
-git switch feature/secret-trail-challenges
 npm ci
 npm run compile
 cat > .env.local <<'EOF'
 VITE_MIDNIGHT_NETWORK=preprod
-VITE_CONTRACT_ADDRESS=YOUR_NEW_SECRET_TRAIL_CONTRACT_ADDRESS
+VITE_CONTRACT_ADDRESS=61eafc2202ab691039994916cf4f5821dd97eee8df489872862aee472f79cc63
 VITE_PROOF_SERVER_URL=https://midnight-counter-prover.onrender.com
 EOF
 npm run dev
@@ -90,7 +89,7 @@ The suite checks the earlier contract, the new challenge and replay rules, and p
 
 ## CI/CD
 
-[GitHub Actions](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the Compact compiler, compiles the Secret Trail contract, runs tests, builds the production app, and typechecks the deployment script. The [V2 draft pull request passed CI](https://github.com/ashuujha/midnight-secret-trail/actions/runs/36181598626). The badge above reflects `main`, which still hosts V1 until the new contract is deployed and the release is merged.
+[GitHub Actions](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the Compact compiler, compiles the Secret Trail contract, runs tests, builds the production app, and typechecks the deployment script. The [V2 pull request passed CI](https://github.com/ashuujha/midnight-secret-trail/actions/runs/36182024283), and the badge above reflects the current `main` branch.
 
 ## Product Proposal
 
@@ -102,10 +101,10 @@ A one-minute **Secret Trail** recording is still needed: connect Lace; show a pr
 
 ## Submission Checklist
 
-- ✓ Public GitHub repository and full documentation for this branch.
+- ✓ Public GitHub repository and full documentation on `main`.
 - ✓ Compact contract compiles and local gameplay tests pass.
 - ✓ CI workflow and badge present; V2 pull-request run passed.
-- ✗ New Secret Trail Preprod contract and live V2 URL.
+- ✓ New Secret Trail Preprod contract and [live V2 URL](https://midnight-secret-trail.vercel.app/).
 - ✗ Full two-wallet live playthrough and game video.
 - ✗ Dedicated product X profile link.
-- ✓ At least 15 meaningful commits already exist in the repository; new V2 work is on its own feature branch.
+- ✓ At least 15 meaningful commits exist in the repository.

@@ -22,6 +22,6 @@ On a transparent chain, verifying a specific route normally requires publishing 
 
 ## Mainnet Feasibility
 
-The first level has bounded computation: eight route templates and five visits per round. Contract tests cover a successful proof, challenge win and loss, forfeit, replay, and authorization. A new Preprod deployment and a complete wallet playthrough are still required before this version can be called live.
+The first level has bounded computation: eight route templates and five visits per round. Contract tests cover a successful proof, challenge win and loss, forfeit, replay, and authorization. The new contract is deployed on Preprod and connected to the live dApp. A complete two-wallet challenge round still needs live transaction verification.
 
 Mainnet competition needs a fair mission-assignment protocol. The current browser selects a mission, so a modified client can choose an easy one. Public trails may narrow the route to one possibility, and multiple browser identities can manipulate a leaderboard. Before prizes or financial stakes, the game also needs identity or Sybil resistance, recovery for lost private state, privacy analysis of route inference, load tests, and a clear trust model for hosted proving services.
