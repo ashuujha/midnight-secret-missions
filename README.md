@@ -22,9 +22,9 @@ The site starts waking the hosted prover when the page opens and caches each cir
 
 ## Contract Address
 
-| Network | Address |
-| --- | --- |
-| [Preprod](https://preprod.midnightexplorer.com/) | `41faea462a257e1f01f171eea6a279e2746cc4165a80e0ba5d05b6fc5c5cda7e` |
+| Network | Address | On-chain record |
+| --- | --- | --- |
+| Preprod | `41faea462a257e1f01f171eea6a279e2746cc4165a80e0ba5d05b6fc5c5cda7e` | [View contract on Midnight Explorer](https://preprod.midnightexplorer.com/contracts/0x41faea462a257e1f01f171eea6a279e2746cc4165a80e0ba5d05b6fc5c5cda7e) |
 
 The Preprod indexer returned this contract's public ledger with `playerCount = 0` and `completedMissions = 0` immediately after deployment. The first wallet join and claim still need a live transaction test.
 
