@@ -875,3 +875,12 @@
     font-size: 12px;
   }
 }
+
+.classic-welcome > .classic-deduction,
+.classic-deduction {
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 470px;
+  margin: 18px auto;
+  color: var(--muted);
+}

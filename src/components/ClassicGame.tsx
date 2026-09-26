@@ -320,6 +320,12 @@ export function ClassicGame({
               </button>
             ))}
           </fieldset>
+          {players === 2 && (
+            <p className="classic-deduction">
+              Two-player twist: you can work out the other starting hand. Which
+              cards they play stays hidden.
+            </p>
+          )}
           <button className="button primary" onClick={deal}>
             Deal the cats ↗
           </button>
@@ -450,6 +456,12 @@ export function ClassicGame({
                   ? "Invite at least one friend to start."
                   : "Ready whenever you are. Two, three, or four players can start."}
               </p>
+              {view.players.length === 2 && (
+                <p className="classic-deduction">
+                  With two players, each starting hand can be inferred from the
+                  other. Invite a third friend for more hidden-hand uncertainty.
+                </p>
+              )}
               <div className="classic-actions">
                 <button
                   className="button secondary"
@@ -823,7 +835,7 @@ export function ClassicGame({
           <a
             target="_blank"
             rel="noreferrer"
-            href={`https://${live.wallet.networkId}.midnightexplorer.com/transactions/0x${live.result.txId.replace(/^0x/, '')}`}
+            href={`https://${live.wallet.networkId}.midnightexplorer.com/transactions/0x${live.result.txId.replace(/^0x/, "")}`}
           >
             Confirmed at block {live.result.blockHeight} ↗
           </a>

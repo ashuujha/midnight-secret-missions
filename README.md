@@ -69,6 +69,8 @@ A fresh local proof-server 8.1.0 run produced proofs for all ten circuit types: 
 
 An observer can see who acts, how many cards move and which opaque slots move. Before a challenge, ciphertexts do not publish their ranks. A challenge deliberately discloses **all actual cards from that play**, whether the claim was true or false. Previous reveals and slot continuity allow memory, tracking and deduction. Public counts can also narrow possible hands; the game does not promise to hide information logically implied by play.
 
+**Two-player deduction:** with all 52 cards dealt between two players, each starting hand is the complement of the other. A player can therefore infer the opponent’s initial hand even though the app never decrypts or sends it to them. Which encrypted slots correspond to those cards, and which cards were played face down, remain hidden until disclosed or deduced. With three or four players, the unknown cards are distributed across multiple hands; collusion can still remove that uncertainty.
+
 The joint shuffle uses ElGamal-style encryption over Midnight's Jubjub operations. Privacy relies on the cryptographic assumptions, private keys and at least one honest, unpredictable shuffle contribution. The client uses cryptographic randomness and rejection-sampled Fisher–Yates; the circuit proves a valid permutation, **not that a participant chose their randomness honestly**. Colluding players can share their hands. The protocol has not received an independent security audit.
 
 **A prover sees private inputs.** A hosted prover receives table secrets needed by its circuits. If everyone uses one service, that operator could reconstruct the whole deck or impersonate seats. For privacy from a proving service, run a compatible prover on your own device. A localhost bridge that forwards requests to Render is still remote proving. V4 intentionally defaults to Lace's provider and does not inherit V3's hosted-prover environment variable; explicitly setting `VITE_CLASSIC_PROOF_SERVER_URL` opts into that trust.
@@ -144,7 +146,7 @@ npm run typecheck:deploy
 npm run check
 ```
 
-The current suite has **79 passing tests**. Tests cover full 2/3/4-player joint deals, 52 unique physical cards, inability to decrypt another player's cards with one's own key, invalid permutations and openings, ownership, turn order, whole-pile pickup, private re-encryption, final claims and rematches. Practice simulations check conservation throughout long games and expose only each bot's own hand. Earlier V3 and trail regressions remain included.
+[Test output screenshot](screenshots/classic52-tests.png) shows selected contract checks and the complete **79-passing-test** summary. Tests cover full 2/3/4-player joint deals, 52 unique physical cards, inability to decrypt another player's cards with one's own key, invalid permutations and openings, ownership, turn order, whole-pile pickup, private re-encryption, final claims and rematches. Practice simulations check conservation throughout long games and expose only each bot's own hand. Earlier V3 and trail regressions remain included.
 
 For an optional real local-prover benchmark, run a compatible proof server on port 6301, then:
 

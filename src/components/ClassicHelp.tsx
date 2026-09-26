@@ -55,6 +55,13 @@ export function ClassicPrivacy() {
         image does not identify your hand.
       </p>
       <p>
+        <strong>Two-player deduction:</strong> because all 52 cards are dealt,
+        you can infer the other player’s starting hand from your own. Their
+        chosen face-down cards remain hidden. Three or four players give more
+        uncertainty; colluding players can still combine their hands to make
+        deductions.
+      </p>
+      <p>
         <strong>Your prover is trusted with private inputs.</strong> Use a proof
         server running on your own device for privacy from the proving service.
         A remote server, including a local bridge that forwards remotely,

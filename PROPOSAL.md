@@ -14,6 +14,8 @@ Fair card play requires two properties that conflict on a fully transparent ledg
 
 The same verification boundary enforces legal card ownership, response order, challenge openings and private re-encryption during pile pickup. Only challenged cards become public; other cards remain encrypted to their current holder. This makes privacy part of the bluffing mechanic itself. A server-authoritative game could offer private hands too, but players would have to trust that server's dealing and adjudication.
 
+A full two-player deal mathematically reveals the opponent’s starting hand as the complement of one’s own, although face-down selections and encrypted-slot identities remain hidden. Three- and four-player tables preserve more uncertainty about individual hands; collusion can reduce it.
+
 The claim has limits: ciphertext slot movements and counts are public; previously revealed cards remain deducible; players can collude; a circuit cannot force honest random choice or an absent player to cooperate. A remote prover receives private inputs, including table keys, and must be trusted. A local prover is needed for privacy from that service. The protocol requires independent review before making stronger competitive-security claims.
 
 ## Data Model
