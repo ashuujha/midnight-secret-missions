@@ -32,7 +32,7 @@ export function CatAtmosphere({
       const detail = (event as CustomEvent<MemeReaction>).detail;
       setReaction({ ...detail, key: Date.now() });
       clearTimeout(clear);
-      clear = setTimeout(() => setReaction(null), 1750);
+      clear = setTimeout(() => setReaction(null), detail.durationMs ?? 1750);
     };
     const click = (event: MouseEvent) => {
       const target = (event.target as Element).closest("button,a");
@@ -221,6 +221,11 @@ export function CatAtmosphere({
         <div
           key={reaction.key}
           className={`meme-reaction reaction-${MEMES[reaction.id].color} ${reaction.id === "oiia" ? "reaction-spin" : ""}`}
+          style={
+            reaction.durationMs
+              ? { animationDuration: `${reaction.durationMs}ms` }
+              : undefined
+          }
           aria-hidden="true"
         >
           <img src={MEMES[reaction.id].image} alt="" />

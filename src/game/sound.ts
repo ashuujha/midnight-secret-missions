@@ -10,7 +10,7 @@ export function stopSound() {
     current.currentTime = 0;
   }
 }
-export function playMeme(id: MemeId) {
+export function playMeme(id: MemeId, durationMs = 2200) {
   stopSound();
   const source = MEMES[id].audio;
   current = audioCache.get(source);
@@ -21,11 +21,16 @@ export function playMeme(id: MemeId) {
   }
   current.volume = id === "crying" ? 0.2 : 0.3;
   void current.play().catch(() => {});
-  stopTimer = setTimeout(stopSound, 2200);
+  stopTimer = setTimeout(stopSound, durationMs);
 }
-export function reactMeme(id: MemeId, audible: boolean, caption?: string) {
-  emitMeme(id, caption);
-  if (audible) playMeme(id);
+export function reactMeme(
+  id: MemeId,
+  audible: boolean,
+  caption?: string,
+  durationMs?: number,
+) {
+  emitMeme(id, caption, durationMs);
+  if (audible) playMeme(id, durationMs);
 }
 export function playSound(sound: Sound, audible = true) {
   reactMeme(

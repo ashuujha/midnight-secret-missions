@@ -3,7 +3,7 @@
 
 > 52 meme cats. Four of every rank. Lie to your friends—or risk picking up the whole pile.
 
-**Classic 52 release status:** the new 2–4 player rules, joint private shuffle, practice table and V4 contract are implemented. **V4 is deployed on Preprod:** schema 4 and all ten verifier keys match this code. Ninety local tests and the production build pass. A complete multiplayer Preprod playthrough and production promotion remain pending. The existing V3 deployment remains the earlier five-cat game; its address cannot run the new rules.
+**Classic 52 release status:** the new 2–4 player rules, joint private shuffle, practice table and V4 contract are implemented. **V4 is deployed on Preprod:** schema 4 and all ten verifier keys match this code. Ninety-five local tests and the production build pass. A complete multiplayer Preprod playthrough and production promotion remain pending. The existing V3 deployment remains the earlier five-cat game; its address cannot run the new rules.
 
 ![Classic 52 practice table](screenshots/classic52-table.png)
 
@@ -54,6 +54,8 @@ Setup needs one shuffle and one deal transaction per player, after room creation
 ### Interface and performance
 
 The table centers the required rank, the public claim and the pile at risk. Your hand is a selectable rank-sorted grid; opponents show only counts. History records declarations, responses and challenge results. Original cat meme images and short recorded reactions are self-hosted, with a coordinated light/dark theme, mute and animation controls. Reduced-motion preferences are respected.
+
+**Cat Chaos:** each newly observed face-down play gets a random 1.2-second cat reaction from the existing meme/sound collection. Selection never reads cards, ranks or truthfulness; any matching meme is coincidence. Reactions are local to each viewer, can repeat, respect mute/reduced-motion settings, and never delay a response or change a transaction. The actual cards and challenge proofs remain the source of truth.
 
 All **52 card faces download together as one catalog**, including in live mode. The server therefore receives no image request tied to an individual private card. Source bytes are preserved; [media credits](public/media-credits.json) list all 52 origins. No generated cat imagery is used.
 
@@ -150,7 +152,7 @@ npm run typecheck:deploy
 npm run check
 ```
 
-The current suite has **90 passing tests**. The earlier [test output screenshot](screenshots/classic52-tests.png) shows 79 tests before the additional wallet recovery and submission checks. Tests cover full 2/3/4-player joint deals, 52 unique physical cards, inability to decrypt another player's cards with one's own key, invalid permutations and openings, ownership, turn order, whole-pile pickup, private re-encryption, final claims and rematches. Practice simulations check conservation throughout long games and expose only each bot's own hand. Earlier V3 and trail regressions remain included.
+The current suite has **95 passing tests**. The earlier [test output screenshot](screenshots/classic52-tests.png) shows 79 tests before the additional wallet recovery and submission checks. Tests cover full 2/3/4-player joint deals, 52 unique physical cards, inability to decrypt another player's cards with one's own key, invalid permutations and openings, ownership, turn order, whole-pile pickup, private re-encryption, final claims and rematches. Practice simulations check conservation throughout long games and expose only each bot's own hand. Earlier V3 and trail regressions remain included.
 
 For an optional real local-prover benchmark, run a compatible proof server on port 6301, then:
 

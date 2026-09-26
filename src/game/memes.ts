@@ -53,16 +53,16 @@ export function pickMeme(previous?: MemeId, random = Math.random): MemeId {
     )
   ];
 }
-export type MemeReaction = { id: MemeId; caption?: string };
+export type MemeReaction = { id: MemeId; caption?: string; durationMs?: number };
 let lastReaction = 0;
 export function lastReactionAt() {
   return lastReaction;
 }
-export function emitMeme(id: MemeId, caption?: string) {
+export function emitMeme(id: MemeId, caption?: string, durationMs?: number) {
   lastReaction = performance.now();
   window.dispatchEvent(
     new CustomEvent<MemeReaction>("cat-bluff:meme", {
-      detail: { id, caption },
+      detail: { id, caption, durationMs },
     }),
   );
 }

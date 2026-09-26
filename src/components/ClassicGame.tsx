@@ -19,6 +19,7 @@ import {
 import { classicInvite } from "../game/classic-invite";
 import { playSound } from "../game/sound";
 import { useClassic52 } from "../hooks/useClassic52";
+import { useCatChaos } from "../hooks/useCatChaos";
 import type { Action } from "../midnight/classic52";
 const stages = {
   preparing: "Preparing your move",
@@ -56,6 +57,13 @@ export function ClassicGame({
     [copied, setCopied] = useState(false),
     [elapsed, setElapsed] = useState(0);
   const view = online ? live.view : practice;
+  useCatChaos({
+    scope: online ? `classic:${live.contract}:${live.room}` : "classic-practice",
+    round: view?.round,
+    play: view ? view.latest?.number ?? 0 : undefined,
+    pending: view?.phase === "respond",
+    sound,
+  });
   const busy = online && live.busy;
   useEffect(() => {
     onBusy(busy);
@@ -155,7 +163,6 @@ export function ClassicGame({
   }, [practice, online]);
   async function act(action: Action) {
     setError("");
-    if (action.kind === "play") playSound("place", sound);
     if (action.kind === "call") playSound("challenge", sound);
     if (online) {
       if (await live.act(action)) setSelected([]);

@@ -32,6 +32,10 @@ export function ClassicRules() {
         Remember there are only four of each rank. Count your own cards, watch
         the pile grow, and decide whether that claim is worth the risk.
       </p>
+      <p>
+        <strong>Cat Chaos:</strong> the quick meme reaction after a play is
+        random. A matching cat is coincidence, not proof of what was played.
+      </p>
     </>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ClassicGame } from "./components/ClassicGame";
+import { useCatChaos } from "./hooks/useCatChaos";
 import { ClassicRules, ClassicPrivacy } from "./components/ClassicHelp";
 import { readClassicInvite } from "./game/classic-invite";
 import { ArcadeHome } from "./components/ArcadeHome";
@@ -56,6 +57,13 @@ export default function App() {
   const [clock, setClock] = useState(Date.now());
   const live = useCatBluff(mode === "live");
   const table = mode === "practice" ? practice.table : live.table;
+  useCatChaos({
+    scope: mode === "live" ? `legacy:${live.contract}:${live.room}` : mode,
+    round: (mode === "practice" || mode === "live") && table ? 0 : undefined,
+    play: table?.play,
+    pending: table?.phase === 1,
+    sound,
+  });
   const myId = mode === "practice" ? "you" : live.hand?.id;
   const seat = table?.players.findIndex((p) => p.id === myId) ?? -1;
   const mine =
@@ -216,7 +224,6 @@ export default function App() {
     if (kind === "call") say("challenge");
     if (kind === "play") {
       if (selected === null) return;
-      say("place");
       flyCard();
     }
     if (mode === "practice") {
