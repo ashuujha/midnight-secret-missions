@@ -20,6 +20,7 @@ import {
   type ProofProvider,
   type UnboundTransaction,
 } from "@midnight-ntwrk/midnight-js-types";
+import { submitTransactionOnce } from "./submit-transaction";
 import { inMemoryPrivateStateProvider } from "../in-memory-private-state-provider";
 import { getErrorMessage, getProofServerOrigin } from "../utils/errors";
 import type { CachedZkConfigProvider } from "./cached-zk-config";
@@ -106,11 +107,12 @@ export async function createWalletProviders<
         transaction: FinalizedTransaction,
       ): Promise<TransactionId> => {
         onStage?.("submitting");
-        await stage("Lace transaction submission failed", () =>
+        const transactionId = transaction.identifiers()[0];
+        await submitTransactionOnce(transactionId, () =>
           api.submitTransaction(toHex(transaction.serialize())),
         );
         onStage?.("confirming");
-        return transaction.identifiers()[0];
+        return transactionId;
       },
     },
   };

@@ -113,9 +113,11 @@ export function MidnightProvider({ children }: PropsWithChildren) {
     setStatus('connecting');
     setError(null);
 
+    let connectionStep = 'Wallet access';
     try {
       const connection = await wallet.connect(MIDNIGHT_NETWORK);
       if (connectionVersion.current !== version) return;
+      connectionStep = 'Network check';
       const configuration = await connection.getConfiguration();
       if (connectionVersion.current !== version) return;
       if (configuration.networkId !== MIDNIGHT_NETWORK) {
@@ -123,6 +125,7 @@ export function MidnightProvider({ children }: PropsWithChildren) {
           `Network mismatch: Lace is on ${configuration.networkId}; ${MIDNIGHT_NETWORK} is required.`,
         );
       }
+      connectionStep = 'Loading wallet details';
       const [{ unshieldedAddress }, { dustAddress: connectedDustAddress }, balance] = await Promise.all([
         connection.getUnshieldedAddress(),
         connection.getDustAddress(),
@@ -141,7 +144,7 @@ export function MidnightProvider({ children }: PropsWithChildren) {
       setAddress(null);
       setDustAddress(null);
       setDustBalance(null);
-      setError(friendlyWalletError(connectionError, MIDNIGHT_NETWORK));
+      setError(`${connectionStep}: ${friendlyWalletError(connectionError, MIDNIGHT_NETWORK)}`);
       setStatus('ready');
     }
   }, []);

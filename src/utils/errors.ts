@@ -1,12 +1,26 @@
 // Connector errors can cross the extension boundary as plain objects.
 export const getErrorMessage = (error: unknown): string => {
-  if (typeof error === 'string') return error.trim();
-  if (error === null || typeof error !== 'object') return '';
-
-  const details = ['code', 'message', 'reason'].flatMap((key) => {
-    const value = (error as Record<string, unknown>)[key];
-    return typeof value === 'string' && value.trim() ? [value.trim()] : [];
-  });
+  const seen = new Set<object>();
+  const details: string[] = [];
+  const visit = (value: unknown, depth: number) => {
+    if (depth > 4) return;
+    if (typeof value === 'string' && value.trim()) {
+      details.push(value.trim());
+      return;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      details.push(String(value));
+      return;
+    }
+    if (value === null || typeof value !== 'object' || seen.has(value)) return;
+    seen.add(value);
+    // Read error fields only. Never serialize transaction payloads or private state.
+    const record = value as Record<string, unknown>;
+    for (const field of ['code', 'message', 'reason', 'info', 'cause', 'error']) {
+      visit(record[field], depth + 1);
+    }
+  };
+  visit(error, 0);
   return [...new Set(details)].join(': ');
 };
 
@@ -29,12 +43,23 @@ const isExpiredWalletSession = (message: string): boolean =>
 const walletSessionRecovery =
   "Lace's extension connection stopped. Open chrome://extensions, switch Lace off and back on, unlock it, then reload this page and reconnect. Keep your wallet and site data.";
 
+// Lace 2.4 also returns Rejected when locked, without opening an approval window.
+const isLockedWallet = (message: string): boolean =>
+  /wallet (?:is )?locked|unlock (?:the )?wallet|wallet unlock/i.test(message);
+
+const lockedWalletRecovery =
+  'Lace is locked or needs to be unlocked. Open the Lace extension and unlock your wallet, then return here and reconnect. A locked wallet may refuse the request without showing an approval window.';
+
 export const friendlyWalletError = (error: unknown, networkId: string): string => {
   const message = getErrorMessage(error);
   const normalized = message.toLowerCase();
 
   if (isExpiredWalletSession(message)) return walletSessionRecovery;
+  if (isLockedWallet(message)) return lockedWalletRecovery;
 
+  if (/permissionrejected|not authorized|not authorised|unauthorized request origin/.test(normalized)) {
+    return 'Lace has not authorized this site. Unlock Lace and reconnect. If no approval window appears, check Settings → Authorized DApps for this site and reconnect its entry.';
+  }
   if (/reject|denied|not authorized|cancel/.test(normalized)) {
     return 'Wallet connection was rejected. Approve the request in Lace and try again.';
   }
@@ -58,6 +83,12 @@ export const friendlyCircuitError = (error: unknown, networkId: string): string 
 
   if (isExpiredWalletSession(message)) {
     return `${walletSessionRecovery} Before repeating the action, check Lace activity for a pending or submitted transaction.`;
+  }
+
+  if (isLockedWallet(message)) return lockedWalletRecovery;
+
+  if (/lace transaction submission failed/i.test(message)) {
+    return `${message}. Deployment or move completion is not confirmed. Check this transaction in Lace or the explorer before starting another attempt.`;
   }
 
   if (/dynamically imported module|module script|loading chunk|importing a module/.test(normalized)) {
