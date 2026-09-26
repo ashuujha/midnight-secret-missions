@@ -1,0 +1,213 @@
+pragma language_version >= 0.23;
+import CompactStandardLibrary;
+
+witness identitySecret(): Bytes<32>;
+witness handCounts(): Vector<5, Uint<8>>;
+witness handSalt(): Bytes<32>;
+witness nextHandSalt(): Bytes<32>;
+witness playedCat(): Uint<8>;
+witness playedSalt(): Bytes<32>;
+witness drawnCats(): Vector<5, Uint<8>>;
+
+export ledger schemaVersion: Uint<8>;
+export ledger roomSizes: Map<Bytes<32>, Uint<8>>;
+export ledger roomHosts: Map<Bytes<32>, Bytes<32>>;
+export ledger seats: Map<Bytes<32>, Bytes<32>>;
+export ledger playerRooms: Map<Bytes<32>, Bytes<32>>;
+export ledger hands: Map<Bytes<32>, Bytes<32>>;
+export ledger handSizes: Map<Bytes<32>, Uint<8>>;
+export ledger penaltyDraws: Map<Bytes<32>, Uint<8>>;
+export ledger roomStatus: Map<Bytes<32>, Uint<8>>; // 0 lobby, 1 playing, 2 finished
+export ledger turns: Map<Bytes<32>, Uint<8>>;
+export ledger phases: Map<Bytes<32>, Uint<8>>; // 0 play, 1 respond, 2 prove
+export ledger responders: Map<Bytes<32>, Uint<8>>;
+export ledger passes: Map<Bytes<32>, Uint<8>>;
+export ledger playNumbers: Map<Bytes<32>, Uint<32>>;
+export ledger claims: Map<Bytes<32>, Uint<8>>;
+export ledger cards: Map<Bytes<32>, Bytes<32>>;
+export ledger challengers: Map<Bytes<32>, Bytes<32>>;
+export ledger deadlines: Map<Bytes<32>, Uint<64>>;
+export ledger winners: Map<Bytes<32>, Bytes<32>>;
+export ledger outcomes: Map<Bytes<32>, Uint<8>>; // 0 none, 1 passed, 2 truth, 3 lie, 4 timeout
+export ledger lastActors: Map<Bytes<32>, Bytes<32>>;
+export ledger lastLosers: Map<Bytes<32>, Bytes<32>>;
+
+constructor() { schemaVersion = 3; }
+
+export pure circuit playerId(secret: Bytes<32>): Bytes<32> {
+  return persistentHash<Bytes<32>>(secret);
+}
+struct Seat { room: Bytes<32>; seat: Uint<8>; }
+export pure circuit seatKey(room: Bytes<32>, seat: Uint<8>): Bytes<32> {
+  return persistentHash<Seat>(Seat { room: room, seat: seat });
+}
+export pure circuit handCommitment(counts: Vector<5, Uint<8>>, salt: Bytes<32>): Bytes<32> {
+  return persistentCommit<Vector<5, Uint<8>>>(counts, salt);
+}
+export pure circuit cardCommitment(cat: Uint<8>, salt: Bytes<32>): Bytes<32> {
+  return persistentCommit<Uint<8>>(cat, salt);
+}
+pure circuit countHand(counts: Vector<5, Uint<8>>): Uint<16> {
+  return (counts[0] + counts[1] + counts[2] + counts[3] + counts[4]) as Uint<16>;
+}
+pure circuit nextSeat(seat: Uint<8>, size: Uint<8>): Uint<8> {
+  if (seat + 1 >= size) { return 0; }
+  return (seat + 1) as Uint<8>;
+}
+circuit authenticate(room: Bytes<32>): Bytes<32> {
+  const id = disclose(playerId(identitySecret()));
+  assert(playerRooms.member(id), "Join this table first");
+  assert(playerRooms.lookup(id) == room, "Player belongs to another table");
+  return id;
+}
+circuit setDeadline(room: Bytes<32>, startedAt: Uint<64>): [] {
+  assert(startedAt <= 18446744073708351615, "Timestamp too large");
+  assert(blockTimeGte(startedAt), "Timestamp is in the future");
+  assert(blockTimeLt((startedAt + 300000) as Uint<64>), "Timestamp is too old");
+  deadlines.insert(room, (startedAt + 1200000) as Uint<64>);
+}
+circuit addPlayer(room: Bytes<32>, seat: Uint<8>): [] {
+  const id = disclose(playerId(identitySecret()));
+  assert(!playerRooms.member(id), "Identity already joined a table");
+  const counts = handCounts();
+  assert(countHand(counts) == 5, "Deal exactly five cards");
+  playerRooms.insert(id, room);
+  seats.insert(seatKey(room, seat), id);
+  hands.insert(id, disclose(handCommitment(counts, handSalt())));
+  handSizes.insert(id, 5);
+  penaltyDraws.insert(id, 0);
+}
+export circuit createRoom(roomId: Bytes<32>): [] {
+  const room = disclose(roomId);
+  assert(!roomSizes.member(room), "Table already exists");
+  addPlayer(room, 0);
+  roomHosts.insert(room, disclose(playerId(identitySecret())));
+  roomSizes.insert(room, 1);
+  roomStatus.insert(room, 0);
+  turns.insert(room, 0);
+  phases.insert(room, 0);
+  responders.insert(room, 0);
+  passes.insert(room, 0);
+  playNumbers.insert(room, 0);
+  outcomes.insert(room, 0);
+}
+export circuit joinRoom(roomId: Bytes<32>): [] {
+  const room = disclose(roomId);
+  assert(roomSizes.member(room), "Table not found");
+  assert(roomStatus.lookup(room) == 0, "This game has already started");
+  const size = roomSizes.lookup(room);
+  assert(size < 4, "Table is full");
+  addPlayer(room, size);
+  roomSizes.insert(room, (size + 1) as Uint<8>);
+}
+export circuit playCard(roomId: Bytes<32>, claimedCat: Uint<8>, startedAt: Uint<64>): [] {
+  const room = disclose(roomId);
+  const claim = disclose(claimedCat);
+  const id = authenticate(room);
+  assert(roomStatus.lookup(room) != 2, "Game is over");
+  assert(roomSizes.lookup(room) >= 2, "Invite at least one friend");
+  assert(phases.lookup(room) == 0, "Finish the current claim first");
+  assert(seats.lookup(seatKey(room, turns.lookup(room))) == id, "It is not your turn");
+  assert(claim < 5, "Unknown claimed cat");
+  const cat = playedCat();
+  assert(cat < 5, "Unknown played cat");
+  const counts = handCounts();
+  const draws = drawnCats();
+  assert(handCommitment(counts, handSalt()) == hands.lookup(id), "Private hand does not match the commitment");
+  assert(countHand(counts) + penaltyDraws.lookup(id) == handSizes.lookup(id), "Wrong hand size");
+  assert(countHand(draws) == penaltyDraws.lookup(id), "Wrong penalty draw count");
+  const available = cat == 0 ? counts[0] + draws[0] : cat == 1 ? counts[1] + draws[1] : cat == 2 ? counts[2] + draws[2] : cat == 3 ? counts[3] + draws[3] : counts[4] + draws[4];
+  assert(available > 0, "That cat is not in your hand");
+  const remaining: Vector<5, Uint<8>> = [
+    ((counts[0] as Uint<16>) + draws[0] - (cat == 0 ? 1 : 0)) as Uint<8>,
+    ((counts[1] as Uint<16>) + draws[1] - (cat == 1 ? 1 : 0)) as Uint<8>,
+    ((counts[2] as Uint<16>) + draws[2] - (cat == 2 ? 1 : 0)) as Uint<8>,
+    ((counts[3] as Uint<16>) + draws[3] - (cat == 3 ? 1 : 0)) as Uint<8>,
+    ((counts[4] as Uint<16>) + draws[4] - (cat == 4 ? 1 : 0)) as Uint<8>
+  ];
+  assert(handSizes.lookup(id) > 0, "Your hand is empty");
+  hands.insert(id, disclose(handCommitment(remaining, nextHandSalt())));
+  handSizes.insert(id, (handSizes.lookup(id) - 1) as Uint<8>);
+  penaltyDraws.insert(id, 0);
+  cards.insert(room, disclose(cardCommitment(cat, playedSalt())));
+  claims.insert(room, claim);
+  lastActors.insert(room, id);
+  roomStatus.insert(room, 1);
+  phases.insert(room, 1);
+  responders.insert(room, nextSeat(turns.lookup(room), roomSizes.lookup(room)));
+  passes.insert(room, 0);
+  assert(playNumbers.lookup(room) < 4294967295, "Table reached its play limit");
+  playNumbers.insert(room, (playNumbers.lookup(room) + 1) as Uint<32>);
+  outcomes.insert(room, 0);
+  setDeadline(room, disclose(startedAt));
+}
+circuit finishPlay(room: Bytes<32>): [] {
+  const actor = lastActors.lookup(room);
+  if (handSizes.lookup(actor) == 0) {
+    winners.insert(room, actor);
+    roomStatus.insert(room, 2);
+  }
+  turns.insert(room, nextSeat(turns.lookup(room), roomSizes.lookup(room)));
+  phases.insert(room, 0);
+}
+circuit penalize(loser: Bytes<32>): [] {
+  assert(handSizes.lookup(loser) <= 62, "Hand limit reached");
+  handSizes.insert(loser, (handSizes.lookup(loser) + 2) as Uint<8>);
+  penaltyDraws.insert(loser, (penaltyDraws.lookup(loser) + 2) as Uint<8>);
+}
+export circuit passClaim(roomId: Bytes<32>): [] {
+  const room = disclose(roomId);
+  const id = authenticate(room);
+  assert(roomStatus.lookup(room) == 1 && phases.lookup(room) == 1, "No claim to pass");
+  assert(blockTimeLt(deadlines.lookup(room)), "Response window expired");
+  assert(seats.lookup(seatKey(room, responders.lookup(room))) == id, "It is not your response turn");
+  const count = (passes.lookup(room) + 1) as Uint<8>;
+  passes.insert(room, count);
+  if (count == roomSizes.lookup(room) - 1) {
+    outcomes.insert(room, 1);
+    finishPlay(room);
+  } else {
+    responders.insert(room, nextSeat(responders.lookup(room), roomSizes.lookup(room)));
+  }
+}
+export circuit callBluff(roomId: Bytes<32>, startedAt: Uint<64>): [] {
+  const room = disclose(roomId);
+  const id = authenticate(room);
+  assert(roomStatus.lookup(room) == 1 && phases.lookup(room) == 1, "No claim to challenge");
+  assert(blockTimeLt(deadlines.lookup(room)), "Response window expired");
+  assert(seats.lookup(seatKey(room, responders.lookup(room))) == id, "It is not your response turn");
+  challengers.insert(room, id);
+  phases.insert(room, 2);
+  setDeadline(room, disclose(startedAt));
+}
+export circuit proveClaim(roomId: Bytes<32>): [] {
+  const room = disclose(roomId);
+  const id = authenticate(room);
+  assert(roomStatus.lookup(room) == 1 && phases.lookup(room) == 2, "No challenge to prove");
+  assert(lastActors.lookup(room) == id, "Only the player who placed the card can prove it");
+  assert(blockTimeLt(deadlines.lookup(room)), "Proof window expired");
+  const cat = playedCat();
+  assert(cat < 5, "Unknown cat");
+  assert(cardCommitment(cat, playedSalt()) == cards.lookup(room), "This is not the committed card");
+  const honest = disclose(cat == claims.lookup(room));
+  const loser = honest ? challengers.lookup(room) : id;
+  penalize(loser);
+  lastLosers.insert(room, loser);
+  outcomes.insert(room, honest ? 2 : 3);
+  finishPlay(room);
+}
+export circuit settleTimeout(roomId: Bytes<32>): [] {
+  const room = disclose(roomId);
+  authenticate(room);
+  assert(roomStatus.lookup(room) == 1 && phases.lookup(room) != 0, "Nothing to settle");
+  assert(blockTimeGte(deadlines.lookup(room)), "Time has not run out");
+  if (phases.lookup(room) == 2) {
+    const loser = lastActors.lookup(room);
+    penalize(loser);
+    lastLosers.insert(room, loser);
+    outcomes.insert(room, 4);
+  } else {
+    outcomes.insert(room, 1);
+  }
+  finishPlay(room);
+}
