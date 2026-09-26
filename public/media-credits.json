@@ -102,5 +102,375 @@
       "source": "https://fonts.google.com/specimen/Fredoka",
       "license": "fonts/Fredoka-OFL.txt"
     }
-  ]
+  ],
+  "classic52Deck": {
+    "bundle": "deck-art.json",
+    "note": "All 52 faces are fetched together; card-specific image requests must not expose live hands. Original source bytes retained. IDs are stable gameplay identifiers.",
+    "cards": [
+      {
+        "cardId": 0,
+        "name": "Pop Cat",
+        "source": "https://popcat.click/img/op.353767c3.png",
+        "page": "https://popcat.click/",
+        "sha256": "5c57eeb167c61f556e29b99c093602b9c260d78908fb4c3dff2f9acb912eb389"
+      },
+      {
+        "cardId": 1,
+        "name": "Huh Cat",
+        "source": "https://i.imgflip.com/8338y8.jpg",
+        "page": "https://imgflip.com/memetemplate/488919824/Huh-cat",
+        "sha256": "20daddb27b59d4e3050cfe668848f2924ec78fabbeac88a2d3f0de6157ed3f8e"
+      },
+      {
+        "cardId": 2,
+        "name": "Polite Cat",
+        "source": "https://i.imgflip.com/2dq3nf.jpg",
+        "page": "https://imgflip.com/memetemplate/143710066/Polite-Cat",
+        "sha256": "b1e960b74e9d2e4fff58b708637f51928a4c7eb6f62e4da3668b5c5caf1842c4"
+      },
+      {
+        "cardId": 3,
+        "name": "Banana Cat",
+        "source": "https://i.imgflip.com/6t4t9w.png",
+        "page": "https://imgflip.com/memetemplate/411730484",
+        "sha256": "46f150392500f36e523b8acdc68c3300ed10695a8a337e8d767768dfc32fe61c"
+      },
+      {
+        "cardId": 4,
+        "name": "Crying Cat thumbs up",
+        "source": "https://i.imgflip.com/773c51.png",
+        "page": "https://imgflip.com/memetemplate/435176245",
+        "sha256": "b983529064fe850d46fd5ed4a645efb87688e83bd288d828b13fed06ce5e09aa"
+      },
+      {
+        "cardId": 5,
+        "name": "Ethel / OIIA Cat",
+        "source": "https://oiia.band/assets/cropped_ethel-C4Y8RJz6.png",
+        "page": "https://oiia.band/",
+        "sha256": "623a702994fff2989bcb6aa0a2d1e4e83ebdbe320f433c4c2c61997f2e42bb01"
+      },
+      {
+        "cardId": 6,
+        "name": "Smudge the salad cat",
+        "source": "https://i.imgflip.com/381z0l.jpg",
+        "page": "https://imgflip.com/memetemplate/194927493/Salad-cat",
+        "sha256": "a609e286d2e66b7dc66d49ae7a6286375374d633470475499dd8b68a20fdf932"
+      },
+      {
+        "cardId": 7,
+        "name": "Grumpy Cat",
+        "source": "https://i.imgflip.com/8p0a.jpg",
+        "page": "https://imgflip.com/memetemplate/405658",
+        "sha256": "1b40c15e6777dbb94af3c8aaf6f023c16c58ef8a70f41b63c623cb2d95f68225"
+      },
+      {
+        "cardId": 8,
+        "name": "Boat Cat",
+        "source": "https://i.imgflip.com/tau4.jpg",
+        "page": "https://imgflip.com/memetemplate/1367068",
+        "sha256": "df05c57405060015240b8b6e1ae81c4c660e6e9231708afb5bb14ca5d1064475"
+      },
+      {
+        "cardId": 9,
+        "name": "Scared Cat",
+        "source": "https://i.imgflip.com/2hgfw.jpg",
+        "page": "https://imgflip.com/memetemplate/4173692",
+        "sha256": "adb24d75d3047e5cd997294e5713b8f590a002394a5cd0080fc4485db3b034a8"
+      },
+      {
+        "cardId": 10,
+        "name": "Cute Cat",
+        "source": "https://i.imgflip.com/4xgqu.jpg",
+        "page": "https://imgflip.com/memetemplate/8279814",
+        "sha256": "c51168c4495991d966013bc84342be16836ccc59daa32a75c8d396d996aaca29"
+      },
+      {
+        "cardId": 11,
+        "name": "Smiling Cat",
+        "source": "https://i.imgflip.com/amuvy.jpg",
+        "page": "https://imgflip.com/memetemplate/17862622",
+        "sha256": "362a986d191b52c7cf0ce18c5c90abdd52b9821b1b9a0f6d822b0fff5248e28d"
+      },
+      {
+        "cardId": 12,
+        "name": "Cool Cat Stroll",
+        "source": "https://i.imgflip.com/24uu.jpg",
+        "page": "https://imgflip.com/memetemplate/99606",
+        "sha256": "d66fa829c2b0c2d3237a4c9458cb9cb86a58da3567bfc9a8de19ceb1376e24a1"
+      },
+      {
+        "cardId": 13,
+        "name": "Internet Cat",
+        "source": "https://i.imgflip.com/f1la.jpg",
+        "page": "https://imgflip.com/memetemplate/701902",
+        "sha256": "dc00d5b5d72fc8c4725677fedcf368d622723e0219e1e02ca42a96d506ce46d2"
+      },
+      {
+        "cardId": 14,
+        "name": "Heavy Breathing Cat",
+        "source": "https://i.imgflip.com/7rf5z.jpg",
+        "page": "https://imgflip.com/memetemplate/13036679",
+        "sha256": "5c77a22c4067e16404066ef2aa32a17f5cbdaf4fac708d2859e4ea4e83d8c072"
+      },
+      {
+        "cardId": 15,
+        "name": "Sad Eyes Cat",
+        "source": "https://i.imgflip.com/s71u5.jpg",
+        "page": "https://imgflip.com/memetemplate/47358221",
+        "sha256": "15a04d7aae0bdd38eb02459fe0d65072007d532e979be3980989f247033adcd2"
+      },
+      {
+        "cardId": 16,
+        "name": "Room Guardian",
+        "source": "https://i.imgflip.com/zl7we.jpg",
+        "page": "https://imgflip.com/memetemplate/59776574",
+        "sha256": "6eb53006fcbc83f53293cd0172a6002e962e0ce32b4f890882f889bdc793f398"
+      },
+      {
+        "cardId": 17,
+        "name": "Ceiling Cat",
+        "source": "https://i.imgflip.com/22vtk.jpg",
+        "page": "https://imgflip.com/memetemplate/3493784",
+        "sha256": "56f479960a8356744909621453a1a6a848570b6895a756215294ed2cc1beaeb0"
+      },
+      {
+        "cardId": 18,
+        "name": "Cheezburger Cat",
+        "source": "https://i.imgflip.com/jru7x.jpg",
+        "page": "https://imgflip.com/memetemplate/33211581",
+        "sha256": "784f7b7b44302638b482a4cfae80a9c7178970805565e1141de8881a1a84ff99"
+      },
+      {
+        "cardId": 19,
+        "name": "Chemistry Cat",
+        "source": "https://i.imgflip.com/1bif.jpg",
+        "page": "https://imgflip.com/memetemplate/61575",
+        "sha256": "b89cfb17a0fdaa30af51e1ef27d0695cda64f7c0cd63b029c20cb32db8f4f3bf"
+      },
+      {
+        "cardId": 20,
+        "name": "Cat Holding Dog",
+        "source": "https://i.imgflip.com/3ex8oy.jpg",
+        "page": "https://imgflip.com/memetemplate/206464066",
+        "sha256": "141171a5144437a1047501b5e3b49cad12d4ad2c0e84bf67865b05db42766a7b"
+      },
+      {
+        "cardId": 21,
+        "name": "Business Cat",
+        "source": "https://i.imgflip.com/1bh7.jpg",
+        "page": "https://imgflip.com/memetemplate/61531",
+        "sha256": "68e9dec8f46fd3fcd2fff4d565325e8105a59b7c4c6a82ef7df825272acab49e"
+      },
+      {
+        "cardId": 22,
+        "name": "Nyan Cat",
+        "source": "https://i.imgflip.com/atevl.jpg",
+        "page": "https://imgflip.com/memetemplate/18168465",
+        "sha256": "efd658f8c3c0878e75649a36031b3537d12f76ef6a811a9f9049a9d072908f87"
+      },
+      {
+        "cardId": 23,
+        "name": "Burn Kitty",
+        "source": "https://i.imgflip.com/8tlh.jpg",
+        "page": "https://imgflip.com/memetemplate/411605",
+        "sha256": "cb318a5cf4e74518fb9c5550e253b7b5363fab49c044637e8aca39200e6494a6"
+      },
+      {
+        "cardId": 24,
+        "name": "Wizard Cat",
+        "source": "https://i.imgflip.com/1nstom.jpg",
+        "page": "https://imgflip.com/memetemplate/100442182",
+        "sha256": "ca5f859d994bd024d2a259f49e51f62900bd43f7bdd9f989a5102753217bc321"
+      },
+      {
+        "cardId": 25,
+        "name": "Factory Cat",
+        "source": "https://i.imgflip.com/ad31ut.jpg",
+        "page": "https://imgflip.com/memetemplate/626639141",
+        "sha256": "7bc34645c4186455f6c20eb5cb9d931b131a5234ec4fd45608f7aad32e79de3c"
+      },
+      {
+        "cardId": 26,
+        "name": "Excited Cat",
+        "source": "https://i.imgflip.com/72k5g.jpg",
+        "page": "https://imgflip.com/memetemplate/11876740",
+        "sha256": "6a4fb270cb7e0511977ff38769adba8737f2fe4d80d846bcba70969b7099f09f"
+      },
+      {
+        "cardId": 27,
+        "name": "OMG Cat",
+        "source": "https://i.imgflip.com/1agnf.jpg",
+        "page": "https://imgflip.com/memetemplate/2167755",
+        "sha256": "9f7a13ccc136089322dec1c7aec2a21528ea376262e19d1e0ea627e881b30061"
+      },
+      {
+        "cardId": 28,
+        "name": "Tired Cat",
+        "source": "https://i.imgflip.com/aux23.jpg",
+        "page": "https://imgflip.com/memetemplate/18238683",
+        "sha256": "5e1db548dbd217eff590f9d2ae24e46c83e43125ec8ddfe1bba0a6c279fd4ea7"
+      },
+      {
+        "cardId": 29,
+        "name": "Loading Cat",
+        "source": "https://i.imgflip.com/3ho6l0.jpg",
+        "page": "https://imgflip.com/memetemplate/211080276",
+        "sha256": "1e54b8947a8a14e23f6f5f261d74ef4ad767676b9aae4f0e82209c0220061d00"
+      },
+      {
+        "cardId": 30,
+        "name": "Take a Seat Cat",
+        "source": "https://i.imgflip.com/8o8i.jpg",
+        "page": "https://imgflip.com/memetemplate/404658",
+        "sha256": "dfd78de296d5378d39a3984578df1bce3f8cc73851f30520ba22a5a7ac0afc82"
+      },
+      {
+        "cardId": 31,
+        "name": "Interesting Cat",
+        "source": "https://i.imgflip.com/1bic.jpg",
+        "page": "https://imgflip.com/memetemplate/61572",
+        "sha256": "dd79e9c82ac9d0202d09a1a083d411f745f2be1324e60d09e3a3ed1745c9f79b"
+      },
+      {
+        "cardId": 32,
+        "name": "First World Cat",
+        "source": "https://i.imgflip.com/26h1.jpg",
+        "page": "https://imgflip.com/memetemplate/101701",
+        "sha256": "4f998778a8274c56499bba51b0cd20f2f4eacfb055e6c9245259a2e7427d1e73"
+      },
+      {
+        "cardId": 33,
+        "name": "Depressed Cat",
+        "source": "https://i.imgflip.com/y0om.jpg",
+        "page": "https://imgflip.com/memetemplate/1587190",
+        "sha256": "8131b5e44625c3a5094cf6794e7e1223e8ab0318b3d2964766ae96abe537c6e4"
+      },
+      {
+        "cardId": 34,
+        "name": "Gotta Go Cat",
+        "source": "https://i.imgflip.com/4kyf.jpg",
+        "page": "https://imgflip.com/memetemplate/213783",
+        "sha256": "fe0adb4a50d66aa7f604c96a62f72328ec5d1084282751604fec6649008d42a3"
+      },
+      {
+        "cardId": 35,
+        "name": "Unsettled Tom",
+        "source": "https://i.imgflip.com/2wderu.jpg",
+        "page": "https://imgflip.com/memetemplate/175305738",
+        "sha256": "ebdae58d07ad7528a977d6c269f221eaba2408c10457e00652676bb3bf35d854"
+      },
+      {
+        "cardId": 36,
+        "name": "Fighting Cats",
+        "source": "https://i.imgflip.com/30cls.jpg",
+        "page": "https://imgflip.com/memetemplate/5055184",
+        "sha256": "a74f238ab4265d94d3d9222a95325a0defd0dc6e69ea3bba09734c1a4ad22efd"
+      },
+      {
+        "cardId": 37,
+        "name": "Popcorn Cat",
+        "source": "https://i.imgflip.com/a8dty.jpg",
+        "page": "https://imgflip.com/memetemplate/17187334",
+        "sha256": "3c55e41eff1a8ff28b3dab3377830c5d63a50d35121140d93d1fe6a7c0cb49a9"
+      },
+      {
+        "cardId": 38,
+        "name": "Fat Cat",
+        "source": "https://i.imgflip.com/7qiw.jpg",
+        "page": "https://imgflip.com/memetemplate/360968",
+        "sha256": "ff4fbc464e6e86a073077897500280e2e97bfddc5254fe899c757c81679da358"
+      },
+      {
+        "cardId": 39,
+        "name": "Knife Cat",
+        "source": "https://i.imgflip.com/12ic6x.jpg",
+        "page": "https://imgflip.com/memetemplate/64681017",
+        "sha256": "fbcc54ed730a03c30cf1706708ad702f30f0408fcdf7b401c36f1788a33367f9"
+      },
+      {
+        "cardId": 40,
+        "name": "Waffle Cat",
+        "source": "https://i.imgflip.com/3iqf8o.jpg",
+        "page": "https://imgflip.com/memetemplate/212864424",
+        "sha256": "aa90871934bde219a8e46c2630d5f2de969eb4794c6d04396e0a5122a2fe49fe"
+      },
+      {
+        "cardId": 41,
+        "name": "Sad Kitten",
+        "source": "https://i.imgflip.com/608to.jpg",
+        "page": "https://imgflip.com/memetemplate/10089132",
+        "sha256": "d282f5332b043d15da6ae4c640a1e520490a27701925f0c6169868e7d11a9a8a"
+      },
+      {
+        "cardId": 42,
+        "name": "Curious Cat",
+        "source": "https://i.imgflip.com/bknkp.jpg",
+        "page": "https://imgflip.com/memetemplate/19439449",
+        "sha256": "13501cecf9a882a3133b59018a9e787df7d5e481d36b09cc13f1d4c9ec4f8886"
+      },
+      {
+        "cardId": 43,
+        "name": "Road Trip Cat",
+        "source": "https://i.imgflip.com/uqn9.jpg",
+        "page": "https://imgflip.com/memetemplate/1434213",
+        "sha256": "466a541008842a35c2fb32a9d886dc0a3b62e2d0b4ebb4693bc8d294ec6cff60"
+      },
+      {
+        "cardId": 44,
+        "name": "Coughing Cat",
+        "source": "https://i.imgflip.com/2pby9j.jpg",
+        "page": "https://imgflip.com/memetemplate/163480375",
+        "sha256": "d3000721f697727faa992b6c885c46f8d0bcbacebb72fb6460efccbe185cf801"
+      },
+      {
+        "cardId": 45,
+        "name": "Hidden Cat",
+        "source": "https://i.imgflip.com/2k1lhy.jpg",
+        "page": "https://imgflip.com/memetemplate/154599190",
+        "sha256": "74f9a82c46f6bd46a1537751ef05b0a3ff5bd092b422a857f585f24530f21960"
+      },
+      {
+        "cardId": 46,
+        "name": "Pizza Cat",
+        "source": "https://i.imgflip.com/77km4.jpg",
+        "page": "https://imgflip.com/memetemplate/12110620",
+        "sha256": "02dd7f28250bff0e701fff9ac3491a6e7c6324ea06505dc1a8858a9754647d08"
+      },
+      {
+        "cardId": 47,
+        "name": "Lil BUB",
+        "source": "https://i.kym-cdn.com/entries/icons/facebook/000/011/142/lilbub.jpg",
+        "page": "https://knowyourmeme.com/memes/lil-bub",
+        "sha256": "e040823216765d030034b80d6697c151e9cb4600b76195a9776b3eb87cda6134"
+      },
+      {
+        "cardId": 48,
+        "name": "Happy Cat",
+        "source": "https://i.pinimg.com/736x/13/d9/b0/13d9b081fd612bc5e94611bd395c745d.jpg",
+        "page": "https://www.pinterest.com/pin/gato-bailando-boca-sho-te-amo-en-green-screen--683773155951419071/",
+        "sha256": "7a81a5151778c434c97de6d38e429e2ebf1eef36176ea4b2264dfc986359cd37"
+      },
+      {
+        "cardId": 49,
+        "name": "Maiyahi Cats",
+        "source": "https://www.albinoblacksheep.com/flash/960/maiyahi.jpg",
+        "page": "https://www.albinoblacksheep.com/flash/maiyahi",
+        "sha256": "6843dbabfdb61336af52bdaccd606cb16d090a5b4d4ebe87d270c5e6d47ab5b6"
+      },
+      {
+        "cardId": 50,
+        "name": "Big Floppa",
+        "source": "https://i.kym-cdn.com/entries/icons/original/000/034/421/cover1.jpg",
+        "page": "https://knowyourmeme.com/memes/big-floppa",
+        "sha256": "7ceb3d97c05de240bceaf564f5f3a0b1c4b8e410f98686c6946710d96467fce3"
+      },
+      {
+        "cardId": 51,
+        "name": "El Wiwi",
+        "source": "https://i.kym-cdn.com/entries/icons/original/000/037/027/elwiwicover.jpg",
+        "page": "https://knowyourmeme.com/memes/el-wiwi",
+        "sha256": "4a9d9778ae1a827c95dae872ce8a3f5cd071a043bf360e3a0e80ac44c0906b25"
+      }
+    ]
+  }
 }

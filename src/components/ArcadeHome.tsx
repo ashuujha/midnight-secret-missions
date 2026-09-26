@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CatCard } from "./CatCard";
+import { DECK } from "../game/classic-cards";
 import { CATS } from "../game/cat-bluff";
 import { reactMeme } from "../game/sound";
 import type { MemeId } from "../game/memes";
@@ -34,13 +35,13 @@ export function ArcadeHome({
             <span>BAD ALIBIS.</span>
           </h1>
           <p>
-            Five cards. One poker face.
+            52 cats. One very risky pile.
             <br />
             Lie to your friends. Get judged by cats.
           </p>
           <div className="hero-actions">
             <button className="button primary hero-play" onClick={onPractice}>
-              Learn with Miso <span aria-hidden="true">↗</span>
+              Try a practice round <span aria-hidden="true">↗</span>
               <img src="/memes/pop.png" alt="" />
             </button>
             <button className="button secondary" onClick={onFriends}>
@@ -81,7 +82,13 @@ export function ArcadeHome({
                 aria-label={`React with ${CATS[cat].name}`}
                 onClick={() => reactMeme(reactions[cat], sound)}
               >
-                <CatCard cat={cat} />
+                <CatCard
+                  face={{
+                    ...DECK[cat],
+                    image: CATS[cat].image,
+                    quote: CATS[cat].quote,
+                  }}
+                />
               </button>
             ))}
           </div>
@@ -96,7 +103,8 @@ export function ArcadeHome({
           </button>
           <span className="hero-speech">
             “that is definitely
-            <br />a Pop Cat.”
+            <br />
+            two Queens.”
           </span>
           <span className="handwritten-note">← famous last words</span>
         </div>
@@ -159,7 +167,7 @@ export function ArcadeHome({
         </div>
         <div className="suspect-caption" aria-live="polite">
           <span>{CATS[suspect].name}</span> {bios[suspect]}
-          <small>Five card types. Every one can be used to bluff.</small>
+          <small>52 different cat faces. 13 ranks. Four of each.</small>
         </div>
       </section>
       <section className="how-section" data-reveal aria-labelledby="how-title">
@@ -184,7 +192,7 @@ export function ArcadeHome({
             <span className="step-number">01</span>
             <div>
               <h3>Drop a cat.</h3>
-              <p>Play one card face down. Your hand stays yours.</p>
+              <p>Play one or more cards face down. Your hand stays yours.</p>
             </div>
             <img src="/memes/pop.png" alt="" loading="lazy" />
           </li>
@@ -192,7 +200,9 @@ export function ArcadeHome({
             <span className="step-number">02</span>
             <div>
               <h3>Sell the story.</h3>
-              <p>Claim a cat. Tell the truth, or lie with confidence.</p>
+              <p>
+                Claim the required rank. Tell the truth, or lie with confidence.
+              </p>
             </div>
             <img src="/memes/polite.jpg" alt="" loading="lazy" />
           </li>
@@ -201,8 +211,8 @@ export function ArcadeHome({
             <div>
               <h3>Risk the “huh?”</h3>
               <p>
-                Opponents pass or call bluff. Wrong side draws two. First empty
-                hand wins.
+                Opponents trust or call BLUFF! Wrong side takes the whole pile.
+                Your last claim must survive before you win.
               </p>
             </div>
             <img src="/memes/huh.jpg" alt="" loading="lazy" />

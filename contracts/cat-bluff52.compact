@@ -1,0 +1,272 @@
+pragma language_version >= 0.23;
+import CompactStandardLibrary;
+
+// V4: a conserved, jointly shuffled deck. No dealer has the plaintext deck.
+witness identitySecret(): Bytes<32>;
+witness encryptionSecret(): Uint<248>;
+witness permutation(): Vector<52, Uint<8>>;
+witness blindingFactors(): Vector<52, Uint<248>>;
+witness openedCards(): Vector<52, Uint<8>>;
+
+export struct CipherCard { a: JubjubPoint; b: JubjubPoint; }
+export struct Room {
+  size: Uint<8>; round: Uint<32>;
+  status: Uint<8>; // 0 lobby, 1 joint shuffle, 2 private deal, 3 playing, 4 finished
+  step: Uint<8>; turn: Uint<8>; rank: Uint<8>;
+  phase: Uint<8>; // 0 play, 1 responses, 2 challenge opening, 3 private pile transfer
+  responder: Uint<8>; passes: Uint<8>; play: Uint<32>;
+  actor: Uint<8>; challenger: Uint<8>; pile: Uint<8>;
+  winner: Uint<8>; outcome: Uint<8>; loser: Uint<8>;
+}
+export struct TurnRecord {
+  actor: Uint<8>; rank: Uint<8>; quantity: Uint<8>; pileSize: Uint<8>;
+  passes: Uint<8>; challenger: Uint<8>; outcome: Uint<8>; receiver: Uint<8>;
+  revealed: Vector<52, Uint<8>>; // 255 except cards explicitly opened by a challenge
+}
+struct HistoryKey { room: Bytes<32>; round: Uint<32>; play: Uint<32>; }
+export ledger schemaVersion: Uint<8>;
+export ledger rooms: Map<Bytes<32>, Room>;
+export ledger players: Map<Bytes<32>, Vector<4, Bytes<32>>>;
+export ledger playerKeys: Map<Bytes<32>, Vector<4, JubjubPoint>>;
+export ledger decks: Map<Bytes<32>, Vector<52, CipherCard>>;
+export ledger owners: Map<Bytes<32>, Vector<52, Uint<8>>>; // 0–3 hand, 4 central pile
+export ledger custodians: Map<Bytes<32>, Vector<52, Uint<8>>>;
+export ledger lastSelections: Map<Bytes<32>, Vector<52, Boolean>>;
+export ledger turns: Map<Bytes<32>, TurnRecord>;
+constructor() { schemaVersion = 4; }
+
+export pure circuit indices(): Vector<52, Uint<8>> { return [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51]; }
+export pure circuit playerId(secret: Bytes<32>): Bytes<32> { return persistentHash<Bytes<32>>(secret); }
+export pure circuit turnKey(room: Bytes<32>, round: Uint<32>, play: Uint<32>): Bytes<32> {
+  return persistentHash<HistoryKey>(HistoryKey { room: room, round: round, play: play });
+}
+export pure circuit negate(p: JubjubPoint): JubjubPoint {
+  return constructJubjubPoint(0 - jubjubPointX(p), jubjubPointY(p));
+}
+export pure circuit publicKey(secret: Uint<248>): JubjubPoint {
+  assert(secret > 0, "Invalid private key"); return ecMulGenerator(secret as Field);
+}
+// Fixed public encodings (id + 1)G, independently checked against the runtime in tests.
+// A table lookup avoids 52 full scalar multiplications inside challenge proofs.
+export pure circuit cardPoints(): Vector<52, JubjubPoint> {
+  return [
+    constructJubjubPoint(28336281903124990867587793011069573392383982287722241916350956173377953689573 as Field, 39385640392217313770878525135509063452020585410343666726093009378539878503883 as Field),
+    constructJubjubPoint(28470720865600895264575250048565445848783776096727055802752773414594395577565 as Field, 22436823168302830732060329876357833227584559018655015131868680653136578255473 as Field),
+    constructJubjubPoint(8976934280167817951893283006885971257354735267084857365287645009060806900685 as Field, 32390198301931076333580527807646215534390721674374179703346145430428257692101 as Field),
+    constructJubjubPoint(52314913592789878805517974153014629220250507019089108027564561641173449264214 as Field, 316401541904675051751671509748590036265704531513998184420066319217098126774 as Field),
+    constructJubjubPoint(46037580203438066765405229507649644425780970512522822336637661968249826130047 as Field, 26189429486186784039799689203850934078756791903368248146476421754146336352630 as Field),
+    constructJubjubPoint(19776671323258295437958098013654610197824075866629837433327130215719837584235 as Field, 5535585428160846147918766193546489324802840380885544621462259231927486889442 as Field),
+    constructJubjubPoint(47805549206756120863994733988949966563868680443409072344285414365387721651928 as Field, 10883866336127360287053583923937114185802477515052223349661086820822299756070 as Field),
+    constructJubjubPoint(41781039653558041424378087441097781830366075995084681920492076253857675647465 as Field, 4831175673904690165972121461665559889565427034601926888148043923603184925457 as Field),
+    constructJubjubPoint(34875195557165416953091062997199587865723417956572166289027772255080145669259 as Field, 34349553858782601193538818117516589241662365685547285594873772510622512095186 as Field),
+    constructJubjubPoint(9268573229882039720362844093884107124324841417959156722978047581958399937228 as Field, 30853052262980575868266806598366666544178916484903249803426287129999509786368 as Field),
+    constructJubjubPoint(16827724475775646817464036582159000260353701469526893325788649359360731655092 as Field, 44031289517654383275236023968950953006749154478578562892906183459209162884018 as Field),
+    constructJubjubPoint(46068636960963143760223981504708605029421773552962475259064201631901010556558 as Field, 30406190583724009587997261936008990343542078733235621514562696436658796479222 as Field),
+    constructJubjubPoint(23070401747513437877291923283632658528562096145511423991139305139681046329094 as Field, 4618804908354153307723645468004365607556001212646932439019416955377127509460 as Field),
+    constructJubjubPoint(3959067734242116170181166118984837837658260348828162830089480705115677919361 as Field, 23035617762364956757598580296976616296388658400327200605929895603474643434504 as Field),
+    constructJubjubPoint(34133914351292434048413503276202728289265490189576620060413629725504410538523 as Field, 14331798736465991320125906355460685144102305233516748184833801044822620467723 as Field),
+    constructJubjubPoint(10630089522522170653997535304225347033207486684812880742591706861938208868896 as Field, 39870533612335173283077446045255605482686196202257700744224522251980122091149 as Field),
+    constructJubjubPoint(15001502957582222671368688071077535966154891112407496054411821073695459975426 as Field, 19097549670265287402085689751051099877064434235589543463647028264634623812614 as Field),
+    constructJubjubPoint(15341991410457177072215128206481231124706248979299446252633345300303638746550 as Field, 24331498243728247646341491706563324840799318614811812930233476776122922823738 as Field),
+    constructJubjubPoint(15888849353200563491049832910011416317316770021141110413847420265924579726117 as Field, 1323614397456051737924690101425211565486845668896292528439922343630657116864 as Field),
+    constructJubjubPoint(39045351550167949501353705680883459652457822106118276422709403232252509224414 as Field, 48067854682875041992087911546112071385903715747799135175928921131320908962429 as Field),
+    constructJubjubPoint(38403215725225426738913791021951866802258231439823168763007835009237884890752 as Field, 526149742100574637941597732862670399218386507425945566443487654766685603906 as Field),
+    constructJubjubPoint(10505490578163423951378947281762924205220060736345208929031737203714010267558 as Field, 17260531706389435318599181855217702947038548920615356428831222589442467700313 as Field),
+    constructJubjubPoint(36284898170648458424251189254592171376292437116872526736921993130803329024254 as Field, 11940321602654584262950800843104521268715763534030434482269715217025964911081 as Field),
+    constructJubjubPoint(48113320688008755002789823642074788959857891266362867908670501920970348117839 as Field, 49153125927217184320254070441423325938678623035514048579376656917034142251808 as Field),
+    constructJubjubPoint(46342345144974177224618427821761335793178130296434893058002041402802539459646 as Field, 19179058230029852144251557279599418792265247948450700215654953929755511737663 as Field),
+    constructJubjubPoint(5525601552697273628264560128381307159519990938963284307355995727244219225773 as Field, 10924134527028743477883421700479536033623818720067762837379741660111627198005 as Field),
+    constructJubjubPoint(44950199207539667081971096342410667650360183931830171867668509314994002070170 as Field, 48773311031271584246734990953938480506421441864710411379430861243063696318902 as Field),
+    constructJubjubPoint(27535973609497151927053031508669452896061803779475712995124483283043868381250 as Field, 48642338424940630121378621051401400787733875043957913936353602562787636308241 as Field),
+    constructJubjubPoint(12901095396347343414530909396941568530535935478075123893126725042083332911126 as Field, 44206942698410422599664373009331971622938986632882265428972926117836259237022 as Field),
+    constructJubjubPoint(42894463734547648627079143906103106728075029772856998326760993875505885911830 as Field, 40018660068022193106389915776479608173048600592930264975113427238048619618539 as Field),
+    constructJubjubPoint(6828635068809392876811473048649049519671970720941999054538275895483397382595 as Field, 6962419086473812262191051721355896797190154089935603872432130785161336849261 as Field),
+    constructJubjubPoint(36373528899451447414568081516641936100727839895590622699895983268652992966771 as Field, 34862296868563132176708139402078093199118359819880349462319345107484010586141 as Field),
+    constructJubjubPoint(49865686439925854605824967628236838326995342850958068458906458235066822509448 as Field, 48008795495012788362530488218709871500473260543293431641821231191439733816475 as Field),
+    constructJubjubPoint(47498879511606986273251237971920935053773485557180253088766607463285850835903 as Field, 1003864988888884924916002987904504484920967111826459977347841384888939045194 as Field),
+    constructJubjubPoint(872836075084955880486598304396657556245762707832025999270200387824402070029 as Field, 4436246243718240389403462016242074109499337267123680560627100118758671976766 as Field),
+    constructJubjubPoint(7236995507304664989850743725547329798876934529624967608480747213035983726330 as Field, 14232314645745188942105631071925338348482130689537461129210028733053798940110 as Field),
+    constructJubjubPoint(30129857766014689738366475759188874857488331293533834696677820302777131514708 as Field, 34892760791535565718082727313633615407032741867123440073663238049262310881337 as Field),
+    constructJubjubPoint(9158733651339389024291674673549352541715751293505883309498170396946344520333 as Field, 19099970624449323707937659092927475213087387347040588867054181502702665546531 as Field),
+    constructJubjubPoint(13717668187347534416687430153922465278245869021891539196592139696946653986732 as Field, 6428962411083644968092981923987101420726583893344339524676194419204288710045 as Field),
+    constructJubjubPoint(1754246758531630713886785018784472392398756966602420022099449385232665674827 as Field, 28758625512275458310872858910426736734841344437461633941562930055893638351535 as Field),
+    constructJubjubPoint(24125547739664456851753265236250009735047788069848166790040620710476766088342 as Field, 2085528573940097180972666470225810005304800597158436829559123745562681559713 as Field),
+    constructJubjubPoint(20138912577686945720712312428997446658384192143634713548967347449818397055999 as Field, 42359946605512121410619127322408983803291464801315112535234890074809772527139 as Field),
+    constructJubjubPoint(24363420363626089437033229670281932626476105236418170060013171239650713959290 as Field, 11342359962586470042199130008971974608756598813489099484896938345059188868941 as Field),
+    constructJubjubPoint(16658099928726603210107836986754406554791815598822972351116582553180495296567 as Field, 2650100224915923652754582430294793851641590313377256592655958743408916627237 as Field),
+    constructJubjubPoint(26481812234783859085376261045286387687301617561253585272568023743798645177192 as Field, 49868535207718475390130505128195473509065553641851775602444667842507379230791 as Field),
+    constructJubjubPoint(23789749351842967066522015960321667646787465039002662230238805304654250555296 as Field, 21067438240814127762390790861121179907277114792230983853564422529004737722043 as Field),
+    constructJubjubPoint(8654092339971037962081975744682538295803888317749149883987485265662027144040 as Field, 41972728862807071772979889646695627921707531245522073557224437637378274849761 as Field),
+    constructJubjubPoint(37634753127691560062553982902434196646266540432669708952975994286529136756954 as Field, 6418025902559148619674967984243516501769196504383194479354398171512113224179 as Field),
+    constructJubjubPoint(35203245428436667624077740701128079591831857222779192262608993720230385363579 as Field, 3034703999878201404289736185477878633122270606771580469484345732898823623809 as Field),
+    constructJubjubPoint(9547134830740423447903527456967344202043193118658858325166382571605496435846 as Field, 9429594572974407783167071741221612207158939844710001143170909885524225802250 as Field),
+    constructJubjubPoint(848513306722586856097331487698794221804468490520028009420892412102286229457 as Field, 8790061229408210667008353457291989960080292605664444398612377865858592647023 as Field),
+    constructJubjubPoint(35383403383443753536516158861667527790828952844378597086626204295186782700110 as Field, 12893565474264017725996791006428756066955382854422431930220136186629314806206 as Field)
+  ];
+}
+export pure circuit cardPoint(card: Uint<8>): JubjubPoint {
+  assert(card < 52, "Unknown physical card");
+  const points = cardPoints();
+  return fold((found: JubjubPoint, point: JubjubPoint, i: Uint<8>): JubjubPoint => i == card ? point : found, points[0], points, indices());
+}
+export pure circuit decryptCard(card: CipherCard, key: Uint<248>): JubjubPoint {
+  return ecAdd(card.b, negate(ecMul(card.a, key as Field)));
+}
+pure circuit cardRank(card: Uint<8>): Uint<8> {
+  return card < 4 ? 0 : card < 8 ? 1 : card < 12 ? 2 : card < 16 ? 3 : card < 20 ? 4 : card < 24 ? 5 : card < 28 ? 6 : card < 32 ? 7 : card < 36 ? 8 : card < 40 ? 9 : card < 44 ? 10 : card < 48 ? 11 : 12;
+}
+pure circuit dealOwners(size: Uint<8>): Vector<52, Uint<8>> {
+  const d2: Vector<52, Uint<8>> = [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1];
+  const d3: Vector<52, Uint<8>> = [0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0,1,2,0];
+  const d4: Vector<52, Uint<8>> = [0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3];
+  return size == 2 ? d2 : size == 3 ? d3 : d4;
+}
+pure circuit nextSeat(seat: Uint<8>, size: Uint<8>): Uint<8> { return seat + 1 >= size ? 0 : (seat + 1) as Uint<8>; }
+pure circuit countMask(mask: Vector<52, Boolean>): Uint<8> { return fold((n: Uint<8>, yes: Boolean): Uint<8> => (n + (yes ? 1 : 0)) as Uint<8>, 0, mask); }
+pure circuit chooseKey(keys: Vector<4, JubjubPoint>, seat: Uint<8>): JubjubPoint {
+  return fold((p: JubjubPoint, key: JubjubPoint, i: Uint<8>): JubjubPoint => i == seat ? key : p, ecMulGenerator(0), keys, [0,1,2,3]);
+}
+pure circuit chooseCard(cards: Vector<52, CipherCard>, at: Uint<8>): CipherCard {
+  return fold((p: CipherCard, card: CipherCard, i: Uint<8>): CipherCard => i == at ? card : p, cards[0], cards, indices());
+}
+circuit authenticate(room: Bytes<32>): Uint<8> {
+  assert(rooms.member(room), "Table not found");
+  const id = disclose(playerId(identitySecret()));
+  const seat = fold((found: Uint<8>, p: Bytes<32>, i: Uint<8>): Uint<8> => p == id ? i : found, 4, players.lookup(room), [0,1,2,3]);
+  assert(seat < rooms.lookup(room).size, "Join this table first"); return seat;
+}
+circuit checkedKey(room: Bytes<32>, seat: Uint<8>): Uint<248> {
+  const key = encryptionSecret();
+  assert(publicKey(key) == chooseKey(playerKeys.lookup(room), seat), "Wrong private decryption key"); return key;
+}
+export circuit createRoom(roomId: Bytes<32>): [] {
+  const room = disclose(roomId);
+  assert(!rooms.member(room), "Table already exists");
+  const id = disclose(playerId(identitySecret()));
+  const key = disclose(publicKey(encryptionSecret()));
+  rooms.insert(room, Room { size: 1, round: 0, status: 0, step: 0, turn: 0, rank: 0, phase: 0, responder: 1, passes: 0, play: 0, actor: 0, challenger: 255, pile: 0, winner: 255, outcome: 0, loser: 255 });
+  players.insert(room, [id, default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>]);
+  playerKeys.insert(room, [key, ecMulGenerator(0), ecMulGenerator(0), ecMulGenerator(0)]);
+}
+export circuit joinRoom(roomId: Bytes<32>): [] {
+  const room = disclose(roomId);
+  assert(rooms.member(room), "Table not found"); const t = rooms.lookup(room);
+  assert(t.status == 0, "This round has already started"); assert(t.size < 4, "Table is full");
+  const id = disclose(playerId(identitySecret())); const key = disclose(publicKey(encryptionSecret()));
+  const old = players.lookup(room); const keys = playerKeys.lookup(room);
+  for (const p of old) { assert(p != id, "Already seated at this table"); }
+  players.insert(room, map((p: Bytes<32>, i: Uint<8>): Bytes<32> => i == t.size ? id : p, old, [0,1,2,3]));
+  playerKeys.insert(room, map((p: JubjubPoint, i: Uint<8>): JubjubPoint => i == t.size ? key : p, keys, [0,1,2,3]));
+  rooms.insert(room, Room { ...t, size: (t.size + 1) as Uint<8> });
+}
+// One start for 2, 3 or 4 players; the same room supports rematches.
+export circuit startRound(roomId: Bytes<32>): [] {
+  const room = disclose(roomId); const seat = authenticate(room); const t = rooms.lookup(room);
+  assert(seat == 0, "Only the host can start a round");
+  assert(t.status == 0 || t.status == 4, "Finish this round first"); assert(t.size >= 2, "Invite at least one friend");
+  assert(t.round < 4294967295, "Round limit reached");
+  decks.insert(room, map((point: JubjubPoint): CipherCard => CipherCard { a: ecMulGenerator(0), b: point }, cardPoints()));
+  owners.insert(room, dealOwners(t.size)); custodians.insert(room, dealOwners(t.size));
+  lastSelections.insert(room, default<Vector<52, Boolean>>);
+  rooms.insert(room, Room { ...t, round: (t.round + 1) as Uint<32>, status: 1, step: 0, turn: 0, rank: 0, phase: 0, responder: 1, passes: 0, play: 0, actor: 0, challenger: 255, pile: 0, winner: 255, outcome: 0, loser: 255 });
+}
+// Each participant secretly permutes and re-randomizes all 52 ElGamal ciphertexts.
+// A permutation proof prevents insertion, deletion, substitution and duplication.
+export circuit shuffleDeck(roomId: Bytes<32>): [] {
+  const room = disclose(roomId); const seat = authenticate(room); const t = rooms.lookup(room);
+  assert(t.status == 1 && seat == t.step, "It is not your shuffle turn");
+  const old = decks.lookup(room); const order = permutation(); const randomness = blindingFactors();
+  for (const i of 0..52) { assert(order[i] < 52, "Shuffle index out of range"); for (const j of 0..52) { if (i < j) { assert(order[i] != order[j], "Shuffle duplicated a physical card"); } } }
+  const jointKey = fold(ecAdd, ecMulGenerator(0), playerKeys.lookup(room));
+  const shuffled = map((at: Uint<8>, r: Uint<248>): CipherCard => {
+    assert(r > 0, "Fresh shuffle randomness is required");
+    const c = chooseCard(old, at);
+    return CipherCard { a: ecAdd(c.a, ecMulGenerator(r as Field)), b: ecAdd(c.b, ecMul(jointKey, r as Field)) };
+  }, order, randomness);
+  decks.insert(room, disclose(shuffled));
+  rooms.insert(room, Room { ...t, status: seat + 1 == t.size ? 2 : 1, step: seat + 1 == t.size ? 0 : (seat + 1) as Uint<8> });
+}
+// Remove this player's encryption layer only from cards assigned to other players.
+// The recipient's layer stays intact, so the ledger never contains a plaintext hand.
+export circuit shareDeal(roomId: Bytes<32>): [] {
+  const room = disclose(roomId); const seat = authenticate(room); const t = rooms.lookup(room);
+  assert(t.status == 2 && seat == t.step, "It is not your deal turn");
+  const key = checkedKey(room, seat); const own = owners.lookup(room);
+  const dealt = map((c: CipherCard, owner: Uint<8>): CipherCard => owner == seat ? c : CipherCard { a: c.a, b: decryptCard(c, key) }, decks.lookup(room), own);
+  decks.insert(room, disclose(dealt));
+  rooms.insert(room, Room { ...t, status: seat + 1 == t.size ? 3 : 2, step: seat + 1 == t.size ? 0 : (seat + 1) as Uint<8> });
+}
+export circuit playCards(roomId: Bytes<32>, selected: Vector<52, Boolean>): [] {
+  const room = disclose(roomId); const seat = authenticate(room); const t = rooms.lookup(room); const mask = disclose(selected);
+  assert(t.status == 3 && t.phase == 0, "Finish the current turn first"); assert(seat == t.turn, "It is not your turn");
+  const own = owners.lookup(room); const quantity = countMask(mask);
+  assert(quantity > 0, "Select at least one card");
+  for (const i of 0..52) { assert(!mask[i] || own[i] == seat, "That physical card is not in your hand"); }
+  owners.insert(room, map((o: Uint<8>, yes: Boolean): Uint<8> => yes ? 4 : o, own, mask));
+  lastSelections.insert(room, mask); assert(t.play < 4294967295, "Turn limit reached");
+  const play = (t.play + 1) as Uint<32>; const pile = (t.pile + quantity) as Uint<8>;
+  turns.insert(turnKey(room, t.round, play), TurnRecord { actor: seat, rank: t.rank, quantity: quantity, pileSize: pile, passes: 0, challenger: 255, outcome: 0, receiver: 255, revealed: map((i: Uint<8>): Uint<8> => 255, indices()) });
+  rooms.insert(room, Room { ...t, phase: 1, responder: nextSeat(seat,t.size), passes: 0, play: play, actor: seat, challenger: 255, pile: pile, outcome: 0, loser: 255 });
+}
+circuit finishTurn(room: Bytes<32>): [] {
+  const t = rooms.lookup(room);
+  const empty = countMask(map((o: Uint<8>): Boolean => o == t.actor, owners.lookup(room))) == 0;
+  rooms.insert(room, Room { ...t, phase: 0, status: empty ? 4 : 3, winner: empty ? t.actor : 255, turn: nextSeat(t.actor,t.size), rank: t.rank == 12 ? 0 : (t.rank + 1) as Uint<8> });
+}
+export circuit passClaim(roomId: Bytes<32>): [] {
+  const room = disclose(roomId); const seat = authenticate(room); const t = rooms.lookup(room);
+  assert(t.status == 3 && t.phase == 1 && seat == t.responder, "It is not your response turn");
+  const passes = (t.passes + 1) as Uint<8>; const done = passes == t.size - 1;
+  const h = turnKey(room,t.round,t.play); const record = turns.lookup(h);
+  turns.insert(h, TurnRecord { ...record, passes: passes, outcome: done ? 1 : 0 });
+  rooms.insert(room, Room { ...t, passes: passes, responder: nextSeat(seat,t.size), outcome: done ? 1 : 0 });
+  if (done) { finishTurn(room); }
+}
+export circuit callBluff(roomId: Bytes<32>): [] {
+  const room = disclose(roomId); const seat = authenticate(room); const t = rooms.lookup(room);
+  assert(t.status == 3 && t.phase == 1 && seat == t.responder, "It is not your response turn");
+  rooms.insert(room, Room { ...t, phase: 2, challenger: seat });
+  const h = turnKey(room,t.round,t.play); const record = turns.lookup(h);
+  turns.insert(h, TurnRecord { ...record, challenger: seat });
+}
+export circuit revealTurn(roomId: Bytes<32>): [] {
+  const room = disclose(roomId); const seat = authenticate(room); const t = rooms.lookup(room);
+  assert(t.status == 3 && t.phase == 2 && seat == t.actor, "Only the challenged player can open this turn");
+  const key = checkedKey(room, seat); const ids = openedCards(); const mask = lastSelections.lookup(room); const deck = decks.lookup(room);
+  // Only selected cards are disclosed. Unselected witness entries are ignored.
+  const shown = map((c: CipherCard, selected: Boolean, id: Uint<8>): Uint<8> => {
+    if (selected) { assert(id < 52, "Invalid card opening"); assert(decryptCard(c,key) == cardPoint(id), "This is not the encrypted card"); return id; }
+    return 255;
+  }, deck, mask, ids);
+  const revealed = disclose(shown);
+  const truth = fold((valid: Boolean, id: Uint<8>): Boolean => valid && (id == 255 || cardRank(id) == t.rank), true, revealed);
+  const loser = truth ? t.challenger : t.actor; const outcome = truth ? 2 : 3;
+  const own = owners.lookup(room); const keepers = custodians.lookup(room);
+  // Cards already encrypted to the receiver need no additional transaction.
+  const updatedOwners = map((o: Uint<8>, keeper: Uint<8>): Uint<8> => o == 4 && keeper == loser ? loser : o, own, keepers);
+  owners.insert(room, updatedOwners);
+  const pending = countMask(map((o: Uint<8>): Boolean => o == 4, updatedOwners));
+  rooms.insert(room, Room { ...t, phase: 3, pile: pending, outcome: outcome, loser: loser });
+  const h = turnKey(room,t.round,t.play); const record = turns.lookup(h);
+  turns.insert(h, TurnRecord { ...record, outcome: outcome, receiver: loser, revealed: revealed });
+  if (pending == 0) { finishTurn(room); }
+}
+// Return every pile card held under this contributor's key in one proof.
+// Re-encryption proves the card is unchanged without showing it to other players.
+export circuit transferPile(roomId: Bytes<32>): [] {
+  const room = disclose(roomId); const seat = authenticate(room); const t = rooms.lookup(room);
+  assert(t.status == 3 && t.phase == 3, "There is no pile to transfer");
+  const key = checkedKey(room,seat); const own = owners.lookup(room); const keepers = custodians.lookup(room);
+  const mask = map((o: Uint<8>, keeper: Uint<8>): Boolean => o == 4 && keeper == seat, own, keepers);
+  const count = countMask(mask); assert(count > 0, "Your pile cards have already been returned");
+  const receiver = chooseKey(playerKeys.lookup(room),t.loser); const randomness = blindingFactors();
+  const transferred = map((c: CipherCard, yes: Boolean, r: Uint<248>): CipherCard => {
+    if (yes) { assert(r > 0, "Fresh transfer randomness is required"); return CipherCard { a: ecMulGenerator(r as Field), b: ecAdd(decryptCard(c,key),ecMul(receiver,r as Field)) }; }
+    return c;
+  }, decks.lookup(room),mask,randomness);
+  decks.insert(room,disclose(transferred));
+  owners.insert(room,map((o: Uint<8>, yes: Boolean): Uint<8> => yes ? t.loser : o, own,mask));
+  custodians.insert(room,map((o: Uint<8>, yes: Boolean): Uint<8> => yes ? t.loser : o, keepers,mask));
+  rooms.insert(room,Room { ...t, pile: (t.pile - count) as Uint<8> });
+  if (t.pile == count) { finishTurn(room); }
+}

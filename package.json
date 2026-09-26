@@ -11,11 +11,15 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "typecheck:deploy": "tsc --noEmit -p tsconfig.deploy.json",
-    "compile": "compact compile contracts/cat-bluff.compact managed/cat-bluff",
+    "compile": "npm run compile:legacy && npm run compile:classic",
     "test": "tsx --test tests/*.test.ts",
     "check": "npm run compile && npm test && npm run build && npm run typecheck:deploy",
     "deploy:preprod": "tsx deploy/deploy.ts --network preprod",
-    "proof:bridge": "node scripts/lace-proof-bridge.mjs"
+    "proof:bridge": "node scripts/lace-proof-bridge.mjs",
+    "compile:legacy": "compact compile contracts/cat-bluff.compact managed/cat-bluff",
+    "compile:classic": "compact compile contracts/cat-bluff52.compact managed/cat-bluff52",
+    "build:vercel": "node scripts/build-vercel.mjs",
+    "benchmark:proof": "tsx scripts/benchmark-classic-proofs.ts"
   },
   "dependencies": {
     "@midnight-ntwrk/compact-js": "2.5.1",

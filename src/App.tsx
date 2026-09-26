@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { ClassicGame } from "./components/ClassicGame";
+import { ClassicRules, ClassicPrivacy } from "./components/ClassicHelp";
+import { readClassicInvite } from "./game/classic-invite";
 import { ArcadeHome } from "./components/ArcadeHome";
 import { CatAtmosphere } from "./components/CatAtmosphere";
 import { CatControls } from "./components/CatControls";
@@ -17,7 +20,7 @@ import { playSound, stopSound, type Sound } from "./game/sound";
 import { useCatBluff } from "./hooks/useCatBluff";
 import type { Action } from "./midnight/cat-bluff";
 
-type Mode = "home" | "practice" | "live";
+type Mode = "home" | "practice" | "live" | "classic-practice" | "classic-live";
 const stageCopy = {
   preparing: "Preparing your move",
   proving: "Proving the move privately",
@@ -27,7 +30,11 @@ const stageCopy = {
 };
 export default function App() {
   const [mode, setMode] = useState<Mode>(
-    readInvite(location.search) ? "live" : "home",
+    readClassicInvite(location.search)
+      ? "classic-live"
+      : readInvite(location.search)
+        ? "live"
+        : "home",
   );
   const [practice, setPractice] = useState(() => newPractice());
   const [selected, setSelected] = useState<number | null>(null);
@@ -67,7 +74,8 @@ export default function App() {
   const myResponse =
     !!table && seat >= 0 && table.phase === 1 && table.responder === seat;
   const myProof = !!table && table.phase === 2 && table.actor === myId;
-  const busy = mode === "live" && live.busy;
+  const [classicBusy, setClassicBusy] = useState(false);
+  const busy = (mode === "live" && live.busy) || classicBusy;
   const tableTarget = useRef<HTMLDivElement>(null);
   const previousOutcome = useRef("");
   const name = (id?: string) =>
@@ -121,11 +129,13 @@ export default function App() {
   useEffect(() => {
     if (mode !== "practice" || practice.table.status === 2) return;
     const t = practice.table;
-    if (!(
-      (t.phase === 0 && t.turn === 1) ||
-      (t.phase === 1 && t.responder === 1) ||
-      (t.phase === 2 && t.actor === "miso")
-    ))
+    if (
+      !(
+        (t.phase === 0 && t.turn === 1) ||
+        (t.phase === 1 && t.responder === 1) ||
+        (t.phase === 2 && t.actor === "miso")
+      )
+    )
       return;
     const timer = setTimeout(
       () =>
@@ -315,9 +325,19 @@ export default function App() {
       <main>
         {mode === "home" ? (
           <ArcadeHome
-            onPractice={() => startPractice()}
-            onFriends={() => setMode("live")}
+            onPractice={() => setMode("classic-practice")}
+            onFriends={() => setMode("classic-live")}
             sound={sound}
+          />
+        ) : mode.startsWith("classic-") ? (
+          <ClassicGame
+            onBusy={setClassicBusy}
+            key={mode}
+            online={mode === "classic-live"}
+            sound={sound}
+            onHome={() => setMode("home")}
+            onFriends={() => setMode("classic-live")}
+            onLegacy={() => setMode("live")}
           />
         ) : (
           <section className="game-shell">
@@ -804,39 +824,46 @@ export default function App() {
           title="Small rules. Big trust issues."
           onClose={() => setModal(null)}
         >
-          <ol className="rules-list">
-            <li>
-              <strong>Five cards each.</strong> Your hand contains random meme
-              cats. Repeats are allowed.
-            </li>
-            <li>
-              <strong>Play one face down.</strong> Announce a cat. You’re
-              allowed to lie about it.
-            </li>
-            <li>
-              <strong>The next player decides.</strong> Pass, or call bluff.
-              With more players, each gets a response turn.
-            </li>
-            <li>
-              <strong>Challenge? Settle it.</strong> Truth: the challenger draws
-              two. Bluff: the player who lied draws two.
-            </li>
-            <li>
-              <strong>First empty hand wins.</strong> Your last claim must be
-              passed or settled before you win.
-            </li>
-          </ol>
-          <p className="notice">
-            Cat Bluff uses a draw-two penalty, rather than picking up a shared
-            pile. Live turns need a Midnight transaction. Practice is instant.
-          </p>
-          <button
-            className="button primary"
-            disabled={busy}
-            onClick={() => startPractice()}
-          >
-            Got it. Let me try.
-          </button>
+          {mode === "practice" || mode === "live" ? (
+            <>
+              <ol className="rules-list">
+                <li>
+                  <strong>Five cards each.</strong> Your hand contains random
+                  meme cats. Repeats are allowed.
+                </li>
+                <li>
+                  <strong>Play one face down.</strong> Announce a cat. You’re
+                  allowed to lie about it.
+                </li>
+                <li>
+                  <strong>The next player decides.</strong> Pass, or call bluff.
+                  With more players, each gets a response turn.
+                </li>
+                <li>
+                  <strong>Challenge? Settle it.</strong> Truth: the challenger
+                  draws two. Bluff: the player who lied draws two.
+                </li>
+                <li>
+                  <strong>First empty hand wins.</strong> Your last claim must
+                  be passed or settled before you win.
+                </li>
+              </ol>
+              <p className="notice">
+                Cat Bluff uses a draw-two penalty, rather than picking up a
+                shared pile. Live turns need a Midnight transaction. Practice is
+                instant.
+              </p>
+              <button
+                className="button primary"
+                disabled={busy}
+                onClick={() => startPractice()}
+              >
+                Got it. Let me try.
+              </button>
+            </>
+          ) : (
+            <ClassicRules />
+          )}
         </Dialog>
       )}
       {modal === "invite" && (
@@ -909,27 +936,33 @@ export default function App() {
           title="A verdict. Not your whole hand."
           onClose={() => setModal(null)}
         >
-          <p>
-            Everyone sees player IDs, hand sizes, turns, your announced cat, and
-            the result of a challenge. The played card and remaining hand are
-            stored as salted commitments.
-          </p>
-          <p>
-            A live proof checks the committed card. A true claim confirms that
-            cat’s identity. A false claim rules out the announced cat; it does
-            not name the actual cat. The rest of your hand stays hidden from
-            on-chain observers.
-          </p>
-          <p>
-            Private cards live in this browser. A remote proof service receives
-            the inputs needed to prove them, so it must be trusted; use a local
-            prover for device-only proving.
-          </p>
-          <p className="notice">
-            MVP limits: the browser draws the cards; fair random dealing is not
-            yet proved on-chain. Practice runs locally and creates no ZK proofs.
-            There are no money stakes.
-          </p>
+          {mode === "practice" || mode === "live" ? (
+            <>
+              <p>
+                Everyone sees player IDs, hand sizes, turns, your announced cat,
+                and the result of a challenge. The played card and remaining
+                hand are stored as salted commitments.
+              </p>
+              <p>
+                A live proof checks the committed card. A true claim confirms
+                that cat’s identity. A false claim rules out the announced cat;
+                it does not name the actual cat. The rest of your hand stays
+                hidden from on-chain observers.
+              </p>
+              <p>
+                Private cards live in this browser. A remote proof service
+                receives the inputs needed to prove them, so it must be trusted;
+                use a local prover for device-only proving.
+              </p>
+              <p className="notice">
+                MVP limits: the browser draws the cards; fair random dealing is
+                not yet proved on-chain. Practice runs locally and creates no ZK
+                proofs. There are no money stakes.
+              </p>
+            </>
+          ) : (
+            <ClassicPrivacy />
+          )}
         </Dialog>
       )}
       {modal === "settings" && (

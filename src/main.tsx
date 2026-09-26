@@ -5,6 +5,7 @@ import App from './App';
 import { MidnightProvider } from './hooks/useMidnight';
 import './styles.css';
 import './arcade.css';
+import './classic.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

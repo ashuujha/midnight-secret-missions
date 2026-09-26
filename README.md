@@ -1,91 +1,106 @@
 # Cat Bluff
 ![CI](https://github.com/ashuujha/midnight-secret-trail/actions/workflows/ci.yml/badge.svg)
 
-> Good cats. Bad alibis. A private cat-card bluffing game for 2–4 friends on Midnight.
+> 52 meme cats. Four of every rank. Lie to your friends—or risk picking up the whole pile.
 
-**Release status:** [Cat Bluff is live on Vercel](https://cat-bluff-ashuu.vercel.app/) with its new Midnight Preprod contract. Schema 3, all seven circuit entrypoints, and their verifier keys were checked against this build through the public indexer. Local practice and compiled-circuit tests pass; a complete two-wallet game still needs live verification.
+**Classic 52 release status:** the new 2–4 player rules, joint private shuffle, practice table and V4 contract are implemented. Local compiled-circuit tests and the production build pass. **V4 still needs a new Lace deployment and a complete multiplayer Preprod playthrough.** The existing V3 deployment remains the earlier five-cat game; its address cannot run the new rules.
 
-![Cat Bluff welcome screen](screenshots/cat-bluff-home.png)
+![Classic 52 practice table](screenshots/classic52-table.png)
 
-[Card table](screenshots/cat-bluff-table.png) · [Dark theme](screenshots/cat-bluff-dark.png) · [Mobile](screenshots/cat-bluff-mobile.png). These captures show local practice, not on-chain transactions.
+[Mobile](screenshots/classic52-mobile.png) · [Dark theme](screenshots/classic52-dark.png). Screenshots show local practice, not blockchain transactions.
 
 ## Live Demo
 
-[Play Cat Bluff](https://cat-bluff-ashuu.vercel.app/). The [earlier site URL](https://midnight-secret-trail.vercel.app/) also serves Cat Bluff. Keep using the same browser and site address for an existing private hand.
+[Current production site](https://cat-bluff-ashuu.vercel.app/) · [Public repository](https://github.com/ashuujha/midnight-secret-trail)
 
-Choose **Learn with Miso** for an instant guided game. Miso is a practice bot; results are checked locally, with no wallet, ZK proof or transaction.
+In the Classic 52 build, choose **Try a practice round**, pick 2, 3 or 4 players, then **Deal the cats**. You play against local bots. Practice needs no wallet and generates no proof.
 
-For live play, create a table, copy **Invite friends**, and send the link to 1–3 players. Each connects Lace and joins before the host plays the first card. The link contains only the public table and contract IDs. Live tables poll confirmed ledger state every four seconds; invitations do not create fake players.
+For live play after V4 deployment, choose **Play with friends**, connect Lace and create a room. Send **Invite friends** to 1–3 people. Each joins with their own wallet and browser. The host can start with **two, three or four players**. Invitations contain public room and contract IDs; they never include table keys or hands.
+
+Existing V3 invitation links still open the earlier five-cat table. The new lobby also includes **Open earlier five-cat tables**. No V3 contract or saved hand is migrated or overwritten.
 
 ## Contract Address
 
-| Version | Network | Address | Status |
-| --- | --- | --- | --- |
-| Cat Bluff V3 | Preprod | [`3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e`](https://preprod.midnightexplorer.com/contracts/0x3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e) | Schema 3 and all seven circuits verified |
-| Secret Trail V2 | Preprod | [`61eafc2202ab691039994916cf4f5821dd97eee8df489872862aee472f79cc63`](https://preprod.midnightexplorer.com/contracts/0x61eafc2202ab691039994916cf4f5821dd97eee8df489872862aee472f79cc63) | Earlier route game; incompatible with Cat Bluff |
+| Version | Network | Address / deployment status |
+| --- | --- | --- |
+| Classic 52 V4 | Preprod | Deployment pending: requires a new Lace signature. Set `VITE_CLASSIC_CONTRACT_ADDRESS` to its returned address. |
+| Earlier Cat Bluff V3 | Preprod | [`3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e`](https://preprod.midnightexplorer.com/contracts/0x3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e) — schema 3 and seven circuit verifier keys checked; earlier five-cat rules |
 
-Cat Bluff uses **`VITE_CAT_BLUFF_CONTRACT_ADDRESS`** and ledger schema 3. Setting the old `VITE_CONTRACT_ADDRESS` does not enable this game. Never use the V2 address for Cat Bluff.
+V4 has **schema 4 and ten public circuits**. The V3 address belongs only in `VITE_CAT_BLUFF_CONTRACT_ADDRESS`. A frontend deployment does not deploy a contract. Do not use an older Secret Trail address for either card game.
 
 ## What This Does
 
-1. **Five cards each.** Everyone receives five private cards from Pop Cat, Huh Cat, Polite Cat, Banana Cat and Crying Cat. Repeated cats are allowed.
-2. **Play one face down.** Select a real card in your hand, then announce any cat. The announcement may be true or a bluff.
-3. **Pass or call bluff.** Other players respond in seat order. If everyone passes, the card is discarded without opening it.
-4. **Settle a challenge.** The player who placed the card proves whether the announcement matches the committed card. A true claim makes the challenger draw two. A false claim makes the bluffer draw two.
-5. **Empty your hand to win.** Your final card must be passed or settled first. A caught last-card bluff incurs its penalty instead of winning.
+1. **Deal every cat.** A single 52-card deck contains 13 ranks and four physical copies of each. Each card has its own cat meme image. Two players get 26 each; three get 18/17/17; four get 13 each.
+2. **Play face down.** Select one or more cards. The required rank starts at Ace. Playing two cards declares “2 Aces.” The quantity is exact; the ranks may be a lie.
+3. **Trust or BLUFF!** Opponents respond clockwise. If everyone trusts, the cards stay face down in the central pile. The next player claims the next rank: A → 2 → … → K → A.
+4. **Risk the entire pile.** A challenge opens only the cards from that turn. Any wrong rank means the bluffer takes the whole pile. An honest play means the challenger takes it. Earlier unchallenged cards are not publicly revealed during pickup.
+5. **Survive your final claim.** An empty hand wins only after the final play is passed by every opponent or its challenge and pile transfer finish. A caught final bluff returns the pile to the player instead of declaring a winner.
+6. **Play again.** The host starts another round in the same room, with a fresh joint shuffle.
 
-This variant uses a **draw-two penalty**, not picking up the entire shared pile. There is no money, token prize or financial stake. A room supports 2–4 players. The host starts it by playing the first card, after which no one else can join.
+There are no extra cards, replacement draws, stakes, coins, powers or artificial game timers. The growing pile supplies the risk. You can reason from your hand, the four-copy limit, opponents' hand counts and the public history. A passed claim is recorded as **trusted**, not as a proven lie or truth.
 
-Live response and proof windows last 20 minutes to allow for prover, wallet and network delays. Once the response window expires, a participant can settle it as passed. Missing the proof window incurs a draw-two penalty and is recorded as a **timeout**, not a cryptographically established lie. An inactive player at the initial play stage can currently stall a table; create another room if necessary. Hands are capped at 64 cards; a penalty beyond that limit is rejected.
+### Live shuffle and pickup
+
+There is no hosted dealer. Players register separate identity and encryption keys, then each privately permutes and re-randomizes the full encrypted deck. A circuit checks every shuffle is a permutation of exactly the original 52 cards. Each participant then removes their encryption layer from other players' assigned cards; each recipient's layer remains. The recipient opens their own hand locally.
+
+Setup needs one shuffle and one deal transaction per player, after room creation, joins and the host's start. On a challenged pickup, each contributor returns all pile cards still encrypted under their key in a single re-encryption proof. Cards already encrypted for the recipient need no extra transfer. Only the recipient opens their newly received pile cards; other contributors do not receive that new plaintext hand. The next turn starts after the pickup is complete.
+
+**Cooperation limit:** everyone must remain available for setup, opening a challenged play and returning their contributed pile cards. An absent or malicious player can stall the room. There is no timeout that labels silence a proved lie. Browser key recovery and disconnect recovery remain release limitations.
 
 ### Interface and performance
 
-The cat arcade uses crisp white, electric blue, candy pink and yellow, with a coordinated purple night theme. Dela Gothic One headlines and Fredoka controls are self-hosted. Meet the five suspects, learn three rules, then try an instant guided hand. The first practice deal uses one of each cat; subsequent unguided practice and live deals use browser randomness. Cards animate from your hand onto the table.
+The table centers the required rank, the public claim and the pile at risk. Your hand is a selectable rank-sorted grid; opponents show only counts. History records declarations, responses and challenge results. Original cat meme images and short recorded reactions are self-hosted, with a coordinated light/dark theme, mute and animation controls. Reduced-motion preferences are respected.
 
-Clicking controls triggers brief, varied cat reactions; game actions use specific reactions for a challenge, honest claim or caught bluff. The **DAY CAT / 3AM CAT** switch changes theme, **YAP** mutes sound, and **FX** pauses decorative animation. These choices persist locally. Sound is enabled for new visitors but plays only after interaction; previously saved mute choices remain respected. Reduced-motion settings disable animation. Cursor effects use event-driven frames, click paws are capped, and only one reaction and audio clip can play at a time.
+All **52 card faces download together as one catalog**, including in live mode. The server therefore receives no image request tied to an individual private card. Source bytes are preserved; [media credits](public/media-credits.json) list all 52 origins. No generated cat imagery is used.
 
-Actual cat meme photos, including OIIA and Smudge, and short recorded Huh, Fahh, Pop, OIIA, meow and Happy reactions are served locally. No generated meme images or synthesized sound imitations are used. [Media sources and credits](public/media-credits.json) identify their origins; third-party media is not covered by this repository's code licence.
+Practice does not load the Midnight proving runtime. Live circuits load on demand; their keys are cached and the next relevant circuit is prefetched. Ordinary plays move owned encrypted slots without re-shuffling the deck. Private shuffle, opening and transfer proofs are substantially larger than play/pass proofs. The UI reports actual proof, wallet, submission and confirmation stages, not a simulated success.
 
-The initial page and practice game do not load the Midnight proving runtime. Live play prefetches the next circuit's assets, caches them across moves, and warms the configured hosted prover before submission. Wallet configuration and shielded-address reads run concurrently. Starting the game is combined with the first play; pending penalty draws are absorbed into the next play rather than requiring a separate transaction. Challenge resolution and penalties also happen in one circuit call.
+A fresh local proof-server 8.1.0 run produced proofs for all ten circuit types: ordinary play/pass/call took approximately **0.8–1.1 seconds**, start-round about **4.9 seconds**, and the heavier shuffle, deal, reveal and transfer operations approximately **6–20 seconds**. These are single-machine synthetic-state measurements, excluding downloads, wallet balancing and chain confirmation. The fixed public card encodings reduce the start-round proving key from about 21 MB to 11 MB. The prover used several GB of memory; repeated runs across multiple contract builds exhausted a 3.5 GB Docker VM, so plan memory headroom and restart after changing builds. A 512 MB free service is not a validated host for this protocol.
 
-These changes remove avoidable requests and extra transactions. They **do not eliminate proof generation, Lace balancing or block confirmation time**. The UI shows the actual stage, elapsed time and final transaction receipt. A pending animation never counts as a confirmed move. No new live latency claim is made before the new contract has been measured on Preprod.
+**No live speed guarantee:** proof generation, Lace balancing and network confirmation still take time. V4's complete live latency has not yet been measured. The protocol and generated proving material are more substantial than V3; a small free hosted prover may be insufficient.
 
 ## Privacy Model
 
-- **PUBLIC:** room IDs, pseudonymous player IDs, seat order, hand sizes, salted hand/card commitments, announced cats, turns, passes, challenges, deadlines, penalty counts, outcomes and winner.
-- **PRIVATE:** the identity secret, hand composition, commitment salts, actual face-down card and its opening, and the composition of pending penalty draws. These are stored in the player's browser and supplied to the selected prover when required.
-- **PROVED without revealing the remaining hand:** the player controls the registered identity; the played card belongs to the committed hand after permitted draws; the hand update consumes exactly one card; the challenged card opens the existing commitment; and the public true/false outcome matches the announcement.
+- **PUBLIC:** room IDs, pseudonymous seats, public encryption keys, encrypted deck, opaque card-slot ownership, hand sizes, required rank, chosen slots, pile size, quantities, responses, history, challenge openings, results and winner.
+- **PRIVATE:** identity and encryption secrets, shuffle permutation and blinding values, unchallenged plaintext cards and the remaining hand. Table keys persist locally under the wallet, contract and room.
+- **PROVED without revealing the rest of a hand:** knowledge of a seat's secret; a valid permutation and re-encryption of the original deck; correct private dealing; legal ownership of selected physical cards; truthful opening of the challenged cards; and unchanged plaintext during private pile transfers.
 
 ## Privacy Claim
 
-An on-chain observer sees a claim and its verdict. **A true claim identifies the played cat**, because the public announcement is now confirmed. A false claim rules out the announced cat without publishing which of the other four cats was played. Passing reveals no verdict. Other hand contents and salts are not published by the contract. Repeated observations and hand counts can still support deduction; this is not a claim that all strategy or identity metadata is hidden.
+An observer can see who acts, how many cards move and which opaque slots move. Before a challenge, ciphertexts do not publish their ranks. A challenge deliberately discloses **all actual cards from that play**, whether the claim was true or false. Previous reveals and slot continuity allow memory, tracking and deduction. Public counts can also narrow possible hands; the game does not promise to hide information logically implied by play.
 
-The private hand is saved in local storage, scoped by wallet, contract and room. Someone with access to that browser profile can read it. Clearing storage or changing browsers can prevent a player from finishing a game. An unconfirmed play retains its old and candidate hand openings so confirmation after a refresh can be recovered. The client refuses to overwrite an uncertain pending card with another play.
+The joint shuffle uses ElGamal-style encryption over Midnight's Jubjub operations. Privacy relies on the cryptographic assumptions, private keys and at least one honest, unpredictable shuffle contribution. The client uses cryptographic randomness and rejection-sampled Fisher–Yates; the circuit proves a valid permutation, **not that a participant chose their randomness honestly**. Colluding players can share their hands. The protocol has not received an independent security audit.
 
-A **remote prover receives private proving inputs** and must be trusted. Use a local prover to avoid sending them off-device. The optional local bridge described below forwards data to a hosted service; it does not turn hosted proving into local proving.
+**A prover sees private inputs.** A hosted prover receives table secrets needed by its circuits. If everyone uses one service, that operator could reconstruct the whole deck or impersonate seats. For privacy from a proving service, run a compatible prover on your own device. A localhost bridge that forwards requests to Render is still remote proving. V4 intentionally defaults to Lace's provider and does not inherit V3's hosted-prover environment variable; explicitly setting `VITE_CLASSIC_PROOF_SERVER_URL` opts into that trust.
 
-**Fairness limitation:** the browser draws the cards, including penalties. The circuit enforces exact hand sizes and subsequent committed-card use, but does not prove unbiased random distribution. A modified client can choose its starting and drawn composition. This is a casual prototype, not a trustless shuffled deck or an audited game for prizes. A salted shared shuffle/deal protocol, recovery, anti-Sybil measures and adversarial testing are needed before competitive rewards.
+Only the local player's key is used to decrypt their hand in live UI state. Opponent ciphertexts are public but their plaintext hands are never sent through a game API or logged. Someone with access to the browser profile can read the saved private key. Keep the same browser, wallet and site origin; deleting browser data can make participation unrecoverable. A card catalog is public artwork, not a list of dealt cards.
 
 ## Tech Stack
 
 | Layer | Technology |
 | --- | --- |
-| Interface | React 19, TypeScript, Vite 7, custom CSS |
-| Contract | Compact 0.31.1, seven public circuits, schema 3 |
-| Network | Midnight Preprod |
+| Interface | Existing React 19, TypeScript, Vite 7 and custom CSS |
+| V4 contract | Compact 0.31.1, schema 4, ten public circuits |
+| Network / wallet | Midnight Preprod / Lace connector API 4 |
 | Client | Midnight.js 4.1.1, Compact runtime 0.16 |
-| Wallet | Lace connector API 4 |
-| Tests | Node test runner via tsx, compiled circuit execution |
+| Tests | Node test runner via tsx; real compiled-circuit simulation |
 | CI / hosting | GitHub Actions / Vercel |
 
-`contracts/cat-bluff.compact` is the new source; `managed/cat-bluff` contains its generated runtime, keys and ZKIR. Earlier contracts and their tests remain for regression/reference; they are not the live Cat Bluff contract.
+| Responsibility | File |
+| --- | --- |
+| V4 ledger, shuffle, deal, play and pickup | [`contracts/cat-bluff52.compact`](contracts/cat-bluff52.compact) |
+| Practice rules and restricted bot views | [`src/game/classic-rules.ts`](src/game/classic-rules.ts) |
+| V4 Midnight adapter and private key recovery | [`src/midnight/classic52.ts`](src/midnight/classic52.ts) |
+| Confirmed table polling and wallet actions | [`src/hooks/useClassic52.ts`](src/hooks/useClassic52.ts) |
+| New table inside the existing app shell | [`src/components/ClassicGame.tsx`](src/components/ClassicGame.tsx) |
+| Preserved V3 implementation | `contracts/cat-bluff.compact`, `src/midnight/cat-bluff.ts`, existing table in `src/App.tsx` |
 
 ## Prerequisites
 
 - Node.js 22 and npm.
-- Compact CLI 0.5.2 with compiler 0.31.1 for compilation; [official tooling guide](https://docs.midnight.network/compact/compilation-and-tooling).
-- For live play: Lace on Preprod, usable tDUST, a working prover and the new Cat Bluff contract address.
-- Practice needs only the app; it does not connect a wallet or prover.
+- Compact CLI 0.5.2, compiler 0.31.1; [official tooling guide](https://docs.midnight.network/compact/compilation-and-tooling).
+- Live players: Lace on Preprod, usable tDUST and a working proof server.
+- Two separate wallet/browser profiles to test a real multiplayer round. Practice needs none.
 
 ## Setup & Run Locally
 
@@ -93,29 +108,31 @@ A **remote prover receives private proving inputs** and must be trusted. Use a l
 git clone https://github.com/ashuujha/midnight-secret-trail.git
 cd midnight-secret-trail
 npm ci
+compact update 0.31.1
 npm run compile
 cat > .env.local <<'ENV'
 VITE_MIDNIGHT_NETWORK=preprod
+# Keep the earlier contract available for existing rooms:
 VITE_CAT_BLUFF_CONTRACT_ADDRESS=3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e
-# Optional hosted prover; omit to use the wallet's configured provider:
-VITE_PROOF_SERVER_URL=https://midnight-counter-prover.onrender.com
+# Fill this only after deploying V4 through Lace:
+VITE_CLASSIC_CONTRACT_ADDRESS=
+# Omit VITE_CLASSIC_PROOF_SERVER_URL to use Lace's configured prover.
 ENV
 npm run dev
 ```
 
-Open the Vite URL and choose **Learn with Miso**. For deployment, leave the new address empty, choose **Play with friends → Set up live play**, connect Lace and click **Deploy Cat Bluff with Lace**. Approve the wallet request. Copy the returned address into `VITE_CAT_BLUFF_CONTRACT_ADDRESS` locally and in Vercel, then rebuild. Local development also saves the address to this browser so it can be used immediately.
+Open the Vite URL. **Try a practice round** gives an instant local game. To deploy V4, choose **Play with friends → Set up live play → Connect Lace → Deploy Classic 52 with Lace**. Approve in Lace. Copy the returned address into `VITE_CLASSIC_CONTRACT_ADDRESS` locally and in Vercel, then rebuild. Local development also remembers the deployment address in that browser. The earlier CLI deployment script still deploys V3; use the new browser action for V4.
 
-To test two real players, use separate browser profiles and wallets. Create a table, send its invitation, join from the other profile, and have the host play a card. Exercise both pass and challenge outcomes and verify the public transaction receipts.
+Live test sequence:
 
-Alternatively, `npm run deploy:preprod` uses the deployment CLI and a separately funded wallet. Its ignored `.midnight-state.json` contains recovery data and must stay private. The browser flow uses your existing Lace wallet instead.
+1. Create a room, copy its invitation and join from a second profile. Test three/four seats separately if available.
+2. Host starts. Each player submits their shuffle in order, then each submits the private deal share in order.
+3. Check the hand sizes sum to 52. Each profile should display only its own card faces.
+4. Play multiple cards; let all opponents trust and observe the pile remain.
+5. Challenge both an honest and a false claim. Open the challenged cards and complete required private pile transfers. Check the entire pile reaches the correct player.
+6. Verify that a final claim still permits a challenge, record transaction receipts, and test a rematch.
 
-Some Lace versions expose only `http://localhost:6300` for their proof service. If using the project's hosted prover, run this in another terminal:
-
-```bash
-npm run proof:bridge
-```
-
-The bridge forwards Lace's `/check` and `/prove` requests to the hosted Render service. It must keep running while Lace balances transactions. The site's `VITE_PROOF_SERVER_URL` does **not** change Lace's setting. A free hosted service can sleep and impose a cold-start delay. For device-only proving, run a compatible Midnight proof server locally instead of this forwarding bridge.
+If Lace points to `http://localhost:6300`, a compatible **real local proof server** must run there for device-only proving. The existing `npm run proof:bridge` instead forwards Lace requests to a hosted service and shares private inputs with that service. It is not a privacy-preserving replacement for a local prover. Site environment variables do not change Lace's own proving setting.
 
 ## Run Tests
 
@@ -123,42 +140,52 @@ The bridge forwards Lace's `/check` and `/prove` requests to the hosted Render s
 npm test
 npm run build
 npm run typecheck:deploy
-# Compile + tests + production build + deployment typecheck:
+# Recompile both card contracts, test, build, check the earlier deployment CLI:
 npm run check
 ```
 
-[Test output screenshot](screenshots/cat-bluff-tests.png) shows an excerpt and the full 46-test summary from `npm run check`.
+The current suite has **79 passing tests**. Tests cover full 2/3/4-player joint deals, 52 unique physical cards, inability to decrypt another player's cards with one's own key, invalid permutations and openings, ownership, turn order, whole-pile pickup, private re-encryption, final claims and rematches. Practice simulations check conservation throughout long games and expose only each bot's own hand. Earlier V3 and trail regressions remain included.
 
-The suite includes 12 new compiled-contract tests, seven card-table/invitation tests and three private-hand recovery tests, alongside the existing 24 regression tests. They exercise authorization, commitments, turn order, both challenge outcomes, penalty draws, timeouts, winner conditions, damaged state and uncertain transaction recovery. These are local execution tests, not evidence of an end-to-end on-chain proof or wallet transaction.
+For an optional real local-prover benchmark, run a compatible proof server on port 6301, then:
 
-Browser checks cover the guided honest play, a bluff, bot responses, theme/sound controls, dialogs, media loading, keyboard/accessibility and mobile overflow. They are run separately; `npm run check` runs the commands listed above, not browser automation.
+```bash
+npm run benchmark:proof
+# Optional local endpoint override:
+CLASSIC_BENCHMARK_PROVER=http://127.0.0.1:6301 npm run benchmark:proof
+```
+
+The benchmark creates synthetic keys, proves all ten circuit types against locally constructed state, and prints timings only. It never submits a transaction or uses a wallet. It is separate from CI and rejects remote prover URLs.
+
+These tests execute compiled circuits locally. They do **not** by themselves prove that a live prover accepted a transaction or that two Lace wallets completed a game. Browser checks separately exercise card selection, gameplay, themes, media, accessibility, mobile layout and missing-wallet errors.
 
 ## CI/CD
 
-[The workflow](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the pinned Compact compiler, runs `npm ci`, compiles Cat Bluff, runs the tests, builds the production app and typechecks the deployment CLI. The badge above tracks `main`. [The Cat Bluff release PR passed CI](https://github.com/ashuujha/midnight-secret-trail/actions/runs/36214844178) before [PR #2 was merged](https://github.com/ashuujha/midnight-secret-trail/pull/2).
+[CI](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and pinned Compact, runs `npm ci`, compiles V3 and V4, executes tests, builds the production app and typechecks the existing deployment CLI. The title badge tracks `main`; inspect the release PR's checks for branch-specific validation.
 
-Vercel builds the static app with `npm run build`. Set the new contract environment variable before promoting Cat Bluff to production. A frontend deployment does not deploy a Midnight contract or prove that wallet play works.
+Vercel runs `npm run build:vercel`: install the pinned compiler when needed, compile V4, then typecheck and build. Large V4 keys and ZKIR are generated during builds rather than committed. `scripts/copy-zk-assets.mjs` copies them to `/classic52/`; legacy proving assets keep their original URLs. A clean checkout needs `npm run compile` before `npm run dev` or `npm run build`.
+
+Keep V3's environment variable for old rooms, add V4's separate address after verifying its deployment, and test a preview before promotion. Do not promote a build as a working V4 multiplayer release until the new address and full wallet flow have been verified.
 
 ## Product Proposal
 
-See [PROPOSAL.md](PROPOSAL.md) for the product, Midnight rationale, data model and Mainnet scope. The new card mechanic evolves the previously approved secret-mission idea; approval of this changed proposal has not been represented as granted.
+See [PROPOSAL.md](PROPOSAL.md) for product/users, Midnight rationale, data model and Mainnet scope. Approval of this revised card mechanic is not represented as granted.
 
 ## Demo Video
 
-Record a new Cat Bluff demo after deployment: connect two wallets; create/invite/join; play a face-down cat with a public claim; call bluff; settle with a proof; show the draw-two penalty and a transaction receipt. Include the test output and passing CI run. The earlier counter video is a different product.
+A new Classic 52 video remains pending. Show two real profiles: connect, create/invite/join, private shuffle/deal, a face-down multi-card claim, BLUFF!, opening and whole-pile pickup. Include a real confirmed receipt, passing tests and the CI run. Do not substitute the earlier counter or route-game video for this game.
 
 ## Submission Checklist
 
-- ✓ Public repository and documentation.
-- ✓ New Compact contract compiles; local tests pass.
-- ✓ CI workflow and badge present.
-- ✓ Cat Bluff Preprod address; schema and circuit entrypoints verified.
-- ✗ Full two-wallet live playthrough.
-- ✓ Cat Bluff production release and browser smoke checks.
-- ✗ Current Cat Bluff game video.
-- ✗ Dedicated product X profile linked in this README.
-- ✓ Repository already contains at least 15 meaningful commits; no artificial commit padding.
+- ✓ Public repository and implementation documentation.
+- ✓ Classic 52 contract compiles; local rule and compiled-circuit tests pass.
+- ✓ CI workflow and badge included; release checks must pass before promotion.
+- ✓ Existing V3 Preprod address retained for earlier rooms.
+- ✗ New V4 Preprod deployment/address and complete live multiplayer verification.
+- ✗ Verified Classic 52 production release.
+- ✗ Current game demo video.
+- ✗ Dedicated product X profile linked here.
+- ✓ Repository already exceeds 15 meaningful commits; no artificial commit padding.
 
 ## Media Credits
 
-[Source manifest](public/media-credits.json). Cat images and meme recordings are third-party media with their original rights retained. Bricolage Grotesque is self-hosted with its [OFL licence](public/fonts/OFL.txt).
+[All image, recording and font sources](public/media-credits.json). Third-party media retains its original rights and is not licensed under the repository's code licence. Self-hosted fonts include their licence files in `public/fonts/`.
