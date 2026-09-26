@@ -17,9 +17,11 @@ import {
   readInvite,
   type LocalAction,
 } from "./game/cat-bluff";
-import { playSound, stopSound, type Sound } from "./game/sound";
+import { curiousCat, playSound, stopSound, type Sound } from "./game/sound";
 import { useCatBluff } from "./hooks/useCatBluff";
 import type { Action } from "./midnight/cat-bluff";
+
+import { freshMemeLineup, rememberMemeLineup, MEMES } from "./game/memes";
 
 type Mode = "home" | "practice" | "live" | "classic-practice" | "classic-live";
 const stageCopy = {
@@ -36,6 +38,11 @@ export default function App() {
       : readInvite(location.search)
         ? "live"
         : "home",
+  );
+  const [hostCat] = useState(() => freshMemeLineup("cat-bluff-door-cat", 1)[0]);
+  useEffect(
+    () => rememberMemeLineup("cat-bluff-door-cat", [hostCat]),
+    [hostCat],
   );
   const [practice, setPractice] = useState(() => newPractice());
   const [selected, setSelected] = useState<number | null>(null);
@@ -313,17 +320,26 @@ export default function App() {
         <button
           className="wordmark"
           disabled={busy}
-          onClick={() => setMode("home")}
+          onClick={() => {
+            if (mode === "home") curiousCat(sound);
+            setMode("home");
+          }}
           aria-label="Cat Bluff home"
+          title={`${MEMES[hostCat].name} is on door duty today`}
         >
-          <span className="wordmark-eyes" aria-hidden="true">
-            <i />
-            <i />
+          <span className="wordmark-meme" aria-hidden="true">
+            <img src={MEMES[hostCat].image} alt="" />
           </span>
           cat bluff<span className="wordmark-dot">.</span>
         </button>
         <nav aria-label="Game controls">
-          <button className="text-button" onClick={() => setModal("rules")}>
+          <button
+            className="text-button"
+            onClick={() => {
+              setModal("rules");
+              if (mode === "home") curiousCat(sound);
+            }}
+          >
             How to play
           </button>
           <CatControls

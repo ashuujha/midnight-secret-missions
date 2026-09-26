@@ -53,7 +53,11 @@ export function pickMeme(previous?: MemeId, random = Math.random): MemeId {
     )
   ];
 }
-export type MemeReaction = { id: MemeId; caption?: string; durationMs?: number };
+export type MemeReaction = {
+  id: MemeId;
+  caption?: string;
+  durationMs?: number;
+};
 let lastReaction = 0;
 export function lastReactionAt() {
   return lastReaction;
@@ -65,4 +69,35 @@ export function emitMeme(id: MemeId, caption?: string, durationMs?: number) {
       detail: { id, caption, durationMs },
     }),
   );
+}
+
+/** Decoration only: never use a hand, rank, claim, or game RNG to pick a meme. */
+export function freshMemeLineup(key: string, count: number): MemeId[] {
+  const pool = Object.keys(MEMES) as MemeId[];
+  const sample = [...pool];
+  for (let i = sample.length - 1; i > 0; i--) {
+    const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
+    [sample[i], sample[j]] = [sample[j], sample[i]];
+  }
+  let previous: MemeId[] = [];
+  try {
+    previous = JSON.parse(sessionStorage.getItem(key) || "[]");
+    if (!Array.isArray(previous)) previous = [];
+  } catch {
+    /* Storage is optional for decorative variety. */
+  }
+  const chosen = sample.slice(0, count);
+  // A fresh visit should look different, even if chance picked the same cast.
+  if (chosen.every((id) => previous.includes(id))) {
+    const replacement = sample.find((id) => !previous.includes(id));
+    if (replacement) chosen[0] = replacement;
+  }
+  return chosen;
+}
+export function rememberMemeLineup(key: string, chosen: readonly MemeId[]) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(chosen));
+  } catch {
+    /* optional */
+  }
 }

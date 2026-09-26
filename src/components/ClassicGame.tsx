@@ -16,6 +16,7 @@ import {
   type ClassicView,
   type TurnRecord,
 } from "../game/classic-rules";
+import { practiceActor, practiceRecap } from "../game/practice-presentation";
 import { classicInvite } from "../game/classic-invite";
 import { playGameCue, playMeme, reactMeme } from "../game/sound";
 import { useClassic52 } from "../hooks/useClassic52";
@@ -55,6 +56,17 @@ export function ClassicGame({
     [error, setError] = useState(""),
     [art, setArt] = useState<DeckArt | null>(null),
     [artError, setArtError] = useState("");
+  const [pace, setPace] = useState<"step" | "auto">("step");
+  const [reviewing, setReviewing] = useState(false);
+  const [recap, setRecap] = useState(
+    "Your hand is ready. Start by reading the required rank.",
+  );
+  const [pageVisible, setPageVisible] = useState(!document.hidden);
+  useEffect(() => {
+    const update = () => setPageVisible(!document.hidden);
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
+  }, []);
   const [sortHand, setSortHand] = useState<"rank" | "deal">("rank");
   const [expandedHand, setExpandedHand] = useState(false);
   const [inspected, setInspected] = useState<number | null>(null);
@@ -89,9 +101,14 @@ export function ClassicGame({
   const seat = view?.viewer ?? -1;
   const name = (i: number) => view?.players[i]?.name ?? `Player ${i + 1}`;
   const active = !!view && (!online || status >= 3);
-  const playing = active && view.phase === "play" && view.turn === seat;
+  const practiceReview = !online && reviewing;
+  const playing =
+    active && !practiceReview && view.phase === "play" && view.turn === seat;
   const responding =
-    active && view.phase === "respond" && view.responder === seat;
+    active &&
+    !practiceReview &&
+    view.phase === "respond" &&
+    view.responder === seat;
   const opening =
     active && view.phase === "reveal" && view.latest?.actor === seat;
   const transferring =
@@ -187,12 +204,22 @@ export function ClassicGame({
     setPractice(classicView(engine.current));
     setSelected([]);
     setError("");
+    setReviewing(false);
+    setRecap("Your hand is ready. Start by reading the required rank.");
     playGameCue("flick", gameSound);
   }
   function local(seat: number, action: ClassicAction) {
     if (!engine.current) return;
+    const before = classicView(engine.current);
     engine.current = applyClassic(engine.current, seat, action);
-    setPractice(classicView(engine.current));
+    const next = classicView(engine.current);
+    setPractice(next);
+    setRecap(practiceRecap(before, next, seat, action.kind));
+    setReviewing(
+      next.latest?.outcome !== "pending" &&
+        next.latest !== undefined &&
+        next.phase !== "finished",
+    );
   }
   function animateSubmission() {
     if (
@@ -236,30 +263,43 @@ export function ClassicGame({
         () => card.remove(),
       );
   }
+  function advanceBot() {
+    if (online || !engine.current || reviewing) return;
+    const seat = practiceActor(classicView(engine.current));
+    if (seat === null || seat === 0) return;
+    try {
+      const action = botDecision(classicView(engine.current, seat));
+      if (action.kind === "call") playGameCue("bluff", gameSound);
+      if (action.kind === "play") playGameCue("flick", gameSound);
+      if (action.kind === "reveal") playGameCue("reveal", gameSound);
+      local(seat, action);
+    } catch {
+      setError(
+        "The practice turn could not finish. Deal a new round to try again.",
+      );
+    }
+  }
   useEffect(() => {
-    if (online || !practice || practice.phase === "finished") return;
-    const seat =
-      practice.phase === "play"
-        ? practice.turn
-        : practice.phase === "respond"
-          ? practice.responder
-          : (practice.latest?.actor ?? 0);
-    if (seat === 0) return;
-    const timer = setTimeout(
-      () => {
-        if (!engine.current) return;
-        try {
-          local(seat, botDecision(classicView(engine.current, seat)));
-        } catch {
-          setError(
-            "The practice turn could not finish. Deal a new round to try again.",
-          );
-        }
-      },
-      practice.phase === "reveal" ? 700 : 900,
-    );
+    if (
+      online ||
+      !practice ||
+      pace !== "auto" ||
+      !pageVisible ||
+      modal ||
+      practice.phase === "finished"
+    )
+      return;
+    if (reviewing) {
+      const timer = setTimeout(() => setReviewing(false), 6500);
+      return () => clearTimeout(timer);
+    }
+    if (practiceActor(practice) === 0) return;
+    const expectedState = engine.current;
+    const timer = setTimeout(() => {
+      if (engine.current === expectedState) advanceBot();
+    }, 3500);
     return () => clearTimeout(timer);
-  }, [practice, online]);
+  }, [practice, online, pace, reviewing, pageVisible, modal, gameSound]);
   async function act(action: Action) {
     setError("");
     if (action.kind === "call") playGameCue("bluff", gameSound);
@@ -314,6 +354,10 @@ export function ClassicGame({
     if (view.phase === "finished") {
       headline = `${name(view.winner!)} won the round!`;
       hint = "No cats left. Absolutely no trust left. Deal another?";
+    } else if (practiceReview) {
+      headline = "A moment for the evidence.";
+      hint =
+        "Read the result below. Continue when you’re ready for the next turn.";
     } else if (playing) {
       headline = `Your turn. Claim ${RANK_NAMES[view.rank]}s.`;
       hint =
@@ -374,6 +418,29 @@ export function ClassicGame({
           </button>
         </div>
       </div>
+      {!online && (
+        <div className="practice-pacing">
+          <div className="pace-options" role="group" aria-label="Practice pace">
+            <button
+              aria-pressed={pace === "step"}
+              onClick={() => setPace("step")}
+            >
+              Step by step
+            </button>
+            <button
+              aria-pressed={pace === "auto"}
+              onClick={() => setPace("auto")}
+            >
+              Relaxed auto
+            </button>
+          </div>
+          <p>
+            {pace === "step"
+              ? "You advance every bot move. Nothing rushes past."
+              : "Bots take 3.5 seconds. Results stay for 6.5 seconds. Your choices never time out."}
+          </p>
+        </div>
+      )}
       {(error || (online && live.error)) && (
         <p className="notice error" role="alert">
           {error || live.error}
@@ -686,31 +753,61 @@ export function ClassicGame({
               to resume your private hand. {connect}
             </div>
           )}
-          {!online && showGuide && (
-            <div className="learn-strip" role="note">
-              <span className="learn-number">LEARN IN ONE HAND</span>
-              <p>
-                {view.phase === "play" && playing
-                  ? `Required rank: ${RANK_NAMES[view.rank]}s. Pick any card, even a different rank. Your cards land face-down.`
-                  : view.phase === "respond" && responding
-                    ? "Trust the claim, or call BLUFF. If they lied, they take the pile. If they told the truth, you take it."
-                    : view.phase === "reveal"
-                      ? "Only the challenged play flips over. The rest of the pile stays hidden."
-                      : view.latest?.outcome === "passed"
-                        ? "No one challenged. Those cards stay hidden in the growing pile; the required rank advances."
-                        : view.latest?.outcome
-                          ? "The wrong side takes the entire pile. Your final play must survive before you win."
-                          : "Watch the required rank and pile. Cat reactions are random; they reveal nothing."}
-              </p>
-              <button
-                className="text-button"
-                onClick={() => {
-                  setShowGuide(false);
-                  localStorage.setItem("cat-bluff-guide", "done");
-                }}
-              >
-                Skip guide ×
-              </button>
+          {!online && (
+            <div className="practice-coach">
+              <div className="practice-coach-copy" role="status">
+                <span className="eyebrow">
+                  {practiceReview
+                    ? "WHAT JUST HAPPENED"
+                    : "YOUR PRACTICE COMPANION"}
+                </span>
+                <p>{recap}</p>
+                {showGuide && (
+                  <p className="coach-tip">
+                    {practiceReview
+                      ? "The pile and hand counts are updated. You can also revisit this result in the activity feed."
+                      : view.phase === "play" && playing
+                        ? `Required rank: ${RANK_NAMES[view.rank]}s. Select any cards, even different ranks. Then use Play face down above your hand.`
+                        : view.phase === "respond" && responding
+                          ? "Use Trust or BLUFF at the table. If they lied, they take the pile. If they told the truth, you take it."
+                          : view.phase === "reveal"
+                            ? "Only this play is revealed. All other hidden cards stay hidden."
+                            : "Watch the claim, then let the next cat act. Reactions are random, never evidence."}
+                  </p>
+                )}
+              </div>
+              <div className="coach-actions">
+                {practiceReview ? (
+                  <button
+                    className="button primary"
+                    onClick={() => setReviewing(false)}
+                  >
+                    Got it · next turn →
+                  </button>
+                ) : practiceActor(view) !== null &&
+                  practiceActor(view) !== 0 ? (
+                  <button className="button secondary" onClick={advanceBot}>
+                    {view.phase === "reveal"
+                      ? `See ${name(practiceActor(view)!)}’s reveal`
+                      : view.phase === "respond"
+                        ? `See ${name(practiceActor(view)!)}’s response`
+                        : `See ${name(practiceActor(view)!)}’s play`}{" "}
+                    →
+                  </button>
+                ) : null}
+                <button
+                  className="text-button"
+                  onClick={() => {
+                    setShowGuide(!showGuide);
+                    localStorage.setItem(
+                      "cat-bluff-guide",
+                      showGuide ? "done" : "show",
+                    );
+                  }}
+                >
+                  {showGuide ? "Hide tips" : "Show tips"}
+                </button>
+              </div>
             </div>
           )}
           <div className="classic-seats" aria-label="Players and hand sizes">

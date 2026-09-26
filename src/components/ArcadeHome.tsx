@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CatCard } from "./CatCard";
 import { DECK } from "../game/classic-cards";
 import { CATS } from "../game/cat-bluff";
-import { reactMeme } from "../game/sound";
+import { curiousCat, reactMeme } from "../game/sound";
 import { readClassicInvite } from "../game/classic-invite";
-import type { MemeId } from "../game/memes";
+import {
+  freshMemeLineup,
+  rememberMemeLineup,
+  MEMES,
+  type MemeId,
+} from "../game/memes";
 const reactions: MemeId[] = ["pop", "huh", "polite", "oiia", "crying"];
 const bios = [
   "No thoughts. Just POP.",
@@ -23,6 +28,10 @@ export function ArcadeHome({
   sound: boolean;
 }) {
   const [suspect, setSuspect] = useState(0);
+  const [lineup, setLineup] = useState(() =>
+    freshMemeLineup("cat-bluff-hero-cats", 3),
+  );
+  useEffect(() => rememberMemeLineup("cat-bluff-hero-cats", lineup), [lineup]);
   const [joinOpen, setJoinOpen] = useState(false);
   const [invite, setInvite] = useState("");
   const [joinError, setJoinError] = useState("");
@@ -113,19 +122,20 @@ export function ArcadeHome({
             </b>
           </span>
           <div className="scene-cards">
-            {[1, 0, 2].map((cat, i) => (
+            {lineup.map((cat, i) => (
               <button
                 key={cat}
                 className={`scene-card scene-card-${i}`}
                 data-meme-silent
-                aria-label={`React with ${CATS[cat].name}`}
-                onClick={() => reactMeme(reactions[cat], sound)}
+                aria-label={`React with ${MEMES[cat].name}`}
+                onClick={() => reactMeme(cat, sound, undefined, 2200)}
               >
                 <CatCard
                   face={{
-                    ...DECK[cat],
-                    image: CATS[cat].image,
-                    quote: CATS[cat].quote,
+                    ...DECK[[43, 20, 48][i]],
+                    name: MEMES[cat].name,
+                    image: MEMES[cat].image,
+                    quote: MEMES[cat].caption,
                   }}
                 />
               </button>
@@ -145,7 +155,15 @@ export function ArcadeHome({
             <br />
             two Queens.”
           </span>
-          <span className="handwritten-note">← famous last words</span>
+          <button
+            className="lineup-shuffle"
+            onClick={() => {
+              setLineup(freshMemeLineup("cat-bluff-hero-cats", 3));
+              curiousCat(sound);
+            }}
+          >
+            New suspects <span aria-hidden="true">↻</span>
+          </button>
         </div>
       </section>
       <div className="arcade-ticker" aria-hidden="true">
@@ -164,10 +182,9 @@ export function ArcadeHome({
       <section
         className="suspect-section"
         id="suspects"
-        data-reveal
         aria-labelledby="suspect-title"
       >
-        <div className="section-heading">
+        <div className="section-heading" data-reveal>
           <div>
             <span className="eyebrow">THE LINEUP</span>
             <h2 id="suspect-title">A deck full of alibis.</h2>
@@ -182,6 +199,8 @@ export function ArcadeHome({
           {CATS.map((c, i) => (
             <button
               key={c.name}
+              data-reveal
+              data-reveal-order={i}
               className={`suspect suspect-${i} ${suspect === i ? "chosen" : ""}`}
               aria-label={`Meet ${c.name}`}
               aria-pressed={suspect === i}
@@ -205,8 +224,8 @@ export function ArcadeHome({
           <small>52 different cat faces. 13 ranks. Four of each.</small>
         </div>
       </section>
-      <section className="how-section" data-reveal aria-labelledby="how-title">
-        <div className="how-title">
+      <section className="how-section" aria-labelledby="how-title">
+        <div className="how-title" data-reveal>
           <span className="eyebrow">THE ENTIRE RULEBOOK</span>
           <h2 id="how-title">The game in three moves.</h2>
           <div className="scroll-cat">
@@ -219,7 +238,7 @@ export function ArcadeHome({
           </div>
         </div>
         <ol className="how-cards">
-          <li>
+          <li data-reveal>
             <span className="step-number">01</span>
             <div>
               <h3>Drop a cat.</h3>
@@ -227,7 +246,7 @@ export function ArcadeHome({
             </div>
             <img src="/memes/pop.png" alt="" loading="lazy" />
           </li>
-          <li>
+          <li data-reveal>
             <span className="step-number">02</span>
             <div>
               <h3>Sell the story.</h3>
@@ -237,7 +256,7 @@ export function ArcadeHome({
             </div>
             <img src="/memes/polite.jpg" alt="" loading="lazy" />
           </li>
-          <li>
+          <li data-reveal>
             <span className="step-number">03</span>
             <div>
               <h3>Risk the “huh?”</h3>
@@ -249,6 +268,45 @@ export function ArcadeHome({
             <img src="/memes/huh.jpg" alt="" loading="lazy" />
           </li>
         </ol>
+      </section>
+      <section className="curiosity-section" aria-labelledby="curiosity-title">
+        <div data-reveal>
+          <span className="eyebrow">A HEALTHY AMOUNT OF SUSPICION</span>
+          <h2 id="curiosity-title">Wait. Can I actually do that?</h2>
+          <p>Ask the important questions. The cats have opinions.</p>
+        </div>
+        <div className="curiosity-questions" data-reveal>
+          {[
+            [
+              "Can I play a King and call it a Queen?",
+              "Absolutely. Select any rank from your hand. Your claim always uses the required rank; your opponents decide whether to trust you. Get caught and the entire pile is yours.",
+            ],
+            [
+              "Did that reaction just give away a card?",
+              "Nope. Cat reactions are picked at random, independently of the cards and whether someone lied. A familiar cat is a coincidence. Trust nobody.",
+            ],
+            [
+              "What if I call BLUFF and I’m wrong?",
+              "Only the last submitted cards turn face up. If every card matches the claim, you take the entire pile. If even one doesn’t, the player who made the claim takes it.",
+            ],
+          ].map(([question, answer]) => (
+            <details key={question}>
+              <summary
+                onClick={(event) => {
+                  if (
+                    !(event.currentTarget.parentElement as HTMLDetailsElement)
+                      .open
+                  )
+                    curiousCat(sound);
+                }}
+              >
+                {question}
+                <span aria-hidden="true">+</span>
+              </summary>
+              <p>{answer}</p>
+            </details>
+          ))}
+        </div>
       </section>
       <section className="last-call" data-reveal>
         <img

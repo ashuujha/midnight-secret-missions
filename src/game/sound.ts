@@ -132,3 +132,17 @@ export function playSound(sound: Sound, audible = true) {
     audible,
   );
 }
+
+let lastCuriosity = -Infinity;
+let previousCuriosity: MemeId | undefined;
+/** An explicit information/exploration click, never a hover or game decision. */
+export function curiousCat(audible: boolean) {
+  if (performance.now() - lastCuriosity < 2300) return;
+  lastCuriosity = performance.now();
+  const choices = (Object.keys(MEMES) as MemeId[]).filter(
+    (id) => id !== previousCuriosity,
+  );
+  previousCuriosity =
+    choices[crypto.getRandomValues(new Uint32Array(1))[0] % choices.length];
+  reactMeme(previousCuriosity, audible, undefined, 2200);
+}

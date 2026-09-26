@@ -125,7 +125,11 @@ export function CatAtmosphere({
     };
   }, [motion, mode]);
   useEffect(() => {
-    if (!motion || matchMedia("(prefers-reduced-motion: reduce)").matches)
+    if (
+      mode !== "home" ||
+      !motion ||
+      matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
       return;
     const targets = document.querySelectorAll<HTMLElement>("[data-reveal]");
     const observer = new IntersectionObserver(
@@ -136,10 +140,14 @@ export function CatAtmosphere({
             observer.unobserve(entry.target);
           }
         }),
-      { threshold: 0.1 },
+      { threshold: 0.12, rootMargin: "0px 0px -32px 0px" },
     );
     targets.forEach((el) => {
       el.classList.add("reveal-ready");
+      el.style.setProperty(
+        "--reveal-delay",
+        `${Number(el.dataset.revealOrder || 0) * 75}ms`,
+      );
       observer.observe(el);
     });
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
@@ -156,7 +164,7 @@ export function CatAtmosphere({
           const r = stage.getBoundingClientRect();
           stage.style.setProperty(
             "--roll",
-            `${(innerHeight / 2 - r.top) * 0.22}deg`,
+            `${Math.max(-32, Math.min(32, (innerHeight / 2 - r.top) * 0.09))}deg`,
           );
         }
       });

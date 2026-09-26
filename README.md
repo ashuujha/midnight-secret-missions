@@ -5,7 +5,7 @@
 
 Cat Bluff is a **2–4 player cat-meme card game** built around private hands, public claims and calling a friend's bluff. The card rank determines the rules; the cat picture gives each card its personality. Midnight verifies legal moves and challenged plays while unchallenged cards stay face down.
 
-**Release status:** Classic 52 is deployed on Preprod and available in preview. A complete multiplayer Preprod playthrough and production promotion remain pending; production currently serves the earlier five-cat game. Capacity changes described below require the next frontend deployment.
+**Release status:** Classic 52 is deployed on Preprod. The current frontend includes the clubhouse interface, step-by-step practice and shared public-room reads. A complete multiplayer Preprod playthrough remains pending; frontend deployment does not establish that verification.
 
 ![Cat Bluff Classic 52 practice table](screenshots/classic52-table.png)
 
@@ -13,13 +13,13 @@ Cat Bluff is a **2–4 player cat-meme card game** built around private hands, p
 
 ## Live Demo
 
-[Play Cat Bluff — earlier five-cat release](https://cat-bluff-ashuu.vercel.app/) · [Public repository](https://github.com/ashuujha/cat-bluff)
+[Play Cat Bluff](https://cat-bluff-ashuu.vercel.app/) · [Public repository](https://github.com/ashuujha/cat-bluff)
 
 [Cat Bluff Classic 52 preview](https://cat-bluff-git-feature-classic-52-ashuujha.vercel.app) — may require Vercel sign-in while release validation is in progress.
 
-Choose **Learn in one hand** for a skippable practice round against 1–3 local bots. Pick 2, 3 or 4 players, then **Deal the cats**. The guide explains the required rank, face-down plays, both challenge outcomes and random Cat Chaos reactions beside the table. Practice needs no wallet and generates no proof.
+Choose **Learn in one hand** for a skippable practice round against 1–3 local bots. Pick 2, 3 or 4 players, then **Deal the cats**. The guide explains the required rank, face-down plays, both challenge outcomes and random Cat Chaos reactions beside the table. **Step by step** is the default: advance each bot move yourself and acknowledge each settled turn before continuing. **Relaxed auto** gives bots 3.5 seconds and holds results for 6.5 seconds; your own choices never time out. Practice needs no wallet and generates no proof.
 
-For live play in the Classic 52 preview, choose **Create room**, connect Lace and create a table. Copy the invite link from the lobby and send it to 1–3 people. Friends can open the link or paste it under **Join room**. Each joins with their own wallet and browser. The host can start with **two, three or four players**. Invitations contain public room and contract IDs; they never include table keys or hands.
+For live Classic 52 play, choose **Create room**, connect Lace and create a table. Copy the invite link from the lobby and send it to 1–3 people. Friends can open the link or paste it under **Join room**. Each joins with their own wallet and browser. The host can start with **two, three or four players**. Invitations contain public room and contract IDs; they never include table keys or hands.
 
 Existing V3 invitation links still open the earlier five-cat table. The new lobby also includes **Open earlier five-cat tables**. No V3 contract or saved hand is migrated or overwritten.
 
@@ -168,7 +168,7 @@ These measure one local public-read service, not 100 wallets proving or submitti
 
 [CI](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and pinned Compact, installs dependencies, compiles the branch's contracts, tests, runs the local 100-client read simulation, builds the app/API and typechecks the deployment CLI and load script. The title badge tracks `main`; [PR #4](https://github.com/ashuujha/cat-bluff/pull/4) validates Classic 52.
 
-Vercel builds the preview with `npm run build:vercel`. V4 proving keys and ZKIR are generated during builds and copied to `/classic52/`. A clean checkout needs `npm run compile` before running the app. Production promotion awaits a complete verified multiplayer round.
+Vercel builds the frontend with `npm run build:vercel`. V4 proving keys and ZKIR are generated during builds and copied to `/classic52/`. A clean checkout needs `npm run compile` before running the app. Production frontend publication and a complete verified multiplayer round are tracked separately.
 
 ## Product Proposal
 
@@ -181,7 +181,7 @@ The Classic 52 video is pending. Show connect → invite/join → shuffle/deal �
 ## Submission Checklist
 
 - ✓ Public repository, docs, CI, contract tests, verified V4 address and more than 15 meaningful commits.
-- ✗ Complete live multiplayer verification and Classic 52 production promotion.
+- ✗ Complete live multiplayer verification with separate wallets.
 - ✗ Current game demo video.
 - ✗ Dedicated product X profile linked here.
 
