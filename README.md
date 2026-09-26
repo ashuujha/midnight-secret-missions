@@ -9,7 +9,7 @@ Cat Bluff is a **2–4 player cat-meme card game** built around private hands, p
 
 ![Cat Bluff Classic 52 practice table](screenshots/classic52-table.png)
 
-[Mobile table](screenshots/classic52-mobile.png) · [Dark clubhouse](screenshots/classic52-dark.png). Screenshots show local practice, not blockchain transactions.
+[Welcome screen](screenshots/clubhouse-home.png) · [Mobile table](screenshots/classic52-mobile.png) · [Dark clubhouse](screenshots/classic52-dark.png). These screenshots show the current interface and local practice, not blockchain transactions.
 
 ## Live Demo
 
@@ -17,7 +17,18 @@ Cat Bluff is a **2–4 player cat-meme card game** built around private hands, p
 
 [Cat Bluff Classic 52 preview](https://cat-bluff-git-feature-classic-52-ashuujha.vercel.app) — may require Vercel sign-in while release validation is in progress.
 
-Choose **Learn in one hand** for a skippable practice round against 1–3 local bots. Pick 2, 3 or 4 players, then **Deal the cats**. The guide explains the required rank, face-down plays, both challenge outcomes and random Cat Chaos reactions beside the table. **Step by step** is the default: advance each bot move yourself and acknowledge each settled turn before continuing. **Relaxed auto** gives bots 3.5 seconds and holds results for 6.5 seconds; your own choices never time out. Practice needs no wallet and generates no proof.
+### Learn without a wallet
+
+Choose **Learn in one hand**, pick 2, 3 or 4 players, then **Deal the cats**. You play against 1–3 local bots; practice generates no proofs or transactions.
+
+| Practice pace | What happens |
+| --- | --- |
+| **Step by step** — default | You advance each bot play, response and reveal. After a settled turn, read the explanation and choose **Got it · next turn**. |
+| **Relaxed auto** | Bots act after 3.5 seconds. Results remain for 6.5 seconds. Your own decisions never time out, and background tabs pause the bots. |
+
+Read the required rank, select any cards from your hand, then choose **Play face down**. A different rank is a bluff, not an invalid selection. The practice companion explains each public action and who takes the pile. Hide or restore tips at any point; switch back to step-by-step whenever you want to slow down.
+
+### Bring friends
 
 For live Classic 52 play, choose **Create room**, connect Lace and create a table. Copy the invite link from the lobby and send it to 1–3 people. Friends can open the link or paste it under **Join room**. Each joins with their own wallet and browser. The host can start with **two, three or four players**. Invitations contain public room and contract IDs; they never include table keys or hands.
 
@@ -53,11 +64,23 @@ Players jointly shuffle and re-randomize an encrypted 52-card deck. Each shuffle
 
 Setup requires a shuffle and a deal-share transaction from each player. On a challenged pickup, relevant contributors privately re-encrypt their pile cards for the recipient. Play resumes when the pickup finishes. All required contributors must remain online; this version cannot force an absent player to open or transfer cards.
 
+### The clubhouse
+
+The interface uses a calm plum clubhouse, warm ivory cards, amber highlights and slate-lilac accents. DM Sans is used throughout, including the landing headline.
+
+- The landing card stack and the meme beside the name change between visits. **New suspects** reshuffles the decorative lineup.
+- Scrolling introduces the card lineup and instructions with short staggered entrances; a small cat tilts with the scroll. The active game table stays steady.
+- Opening a playful rules question can trigger a short random meme and its sound. Clips do not overlap, and meme mute remains available.
+- **Settings** remembers the light/dark theme and separate switches for game sounds, meme sounds and motion. System reduced-motion preferences are respected.
+- The game table keeps the required rank, latest claim, pile size and available action visible. Sort your hand, expand it into a grid, inspect your own cards, and clear selections before submitting. Opponent hands stay face down.
+
+These effects do not change the card rules or add transactions.
+
 ### Cat Chaos and presentation
 
 Each new face-down play triggers a **random 1.2-second cat reaction**. Selection reads no cards, ranks or truthfulness; matching memes are coincidences. Reactions are local to each viewer, may repeat, respect mute/reduced-motion settings and never delay BLUFF or change a transaction.
 
-The table shows your hand, opponents' counts, the required rank, latest claim, pile size and public history. Sort or expand your hand, tap a card to inspect it, and clear a selection before submitting. All 52 card faces download together as one catalog, so image requests do not identify your private cards. Settings remember separate switches for original game cues, meme sounds, motion and the light/dark clubhouse theme.
+All 52 card faces download together as one catalog, so image requests do not identify your private cards. The short game reaction is separate from the longer, optional landing-page reactions. Neither uses hidden gameplay information.
 
 Practice needs no proving runtime. Live play caches and prefetches circuit assets, and shows actual proof, wallet, submission and confirmation stages. Proof generation and confirmation still take time; full live latency is not yet measured. Large shuffle/deal proofs need more prover memory than ordinary plays.
 
@@ -144,7 +167,9 @@ LOAD_PLAYERS=3 npm run test:load
 npm run check
 ```
 
-The suite covers 2/3/4-player deals, card conservation, private ownership, invalid shuffles/openings, turns, pile transfers, final claims, rematches, wallet recovery, Cat Chaos and concurrent public reads. The [test screenshot](screenshots/classic52-tests.png) records an earlier 79-test run.
+**Latest local validation (September 26, 2026): 107 tests passed, zero failed; the production build passed.** The suite covers 2/3/4-player deals, card conservation, private ownership, invalid shuffles/openings, turns, pile transfers, final claims, rematches, wallet recovery, Cat Chaos, privacy-safe practice narration and concurrent public reads. The [test screenshot](screenshots/classic52-tests.png) records an earlier 79-test run.
+
+Chrome checks at 1440 px and 390 px covered the landing page, scroll entrances, changing meme lineup, card selection, challenge/reveal flow, step-by-step and automatic practice, mute, reduced motion and light/dark themes. No page errors or horizontal overflow were observed in those checks.
 
 Tests execute compiled circuits locally; they do not establish a completed multi-wallet Preprod game. For an optional synthetic-state proof benchmark with a compatible local prover on port 6301, run `npm run benchmark:proof`. It submits no transactions and excludes wallet/network latency.
 
@@ -180,7 +205,11 @@ The Classic 52 video is pending. Show connect → invite/join → shuffle/deal �
 
 ## Submission Checklist
 
-- ✓ Public repository, docs, CI, contract tests, verified V4 address and more than 15 meaningful commits.
+- ✓ Public repository, setup and usage documentation.
+- ✓ Verified V4 Preprod contract address.
+- ✓ 107 local tests passing and a successful production build.
+- ✓ CI workflow for main pushes and pull requests.
+- ✓ More than 15 meaningful commits.
 - ✗ Complete live multiplayer verification with separate wallets.
 - ✗ Current game demo video.
 - ✗ Dedicated product X profile linked here.
