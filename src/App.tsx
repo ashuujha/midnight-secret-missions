@@ -377,8 +377,8 @@ export default function App() {
                 {!live.contract ? (
                   <>
                     <p className="notice">
-                      Cat Bluff needs its new card-game contract. The old trail
-                      contract is incompatible.
+                      This table needs the five-cat (V3) contract. Open settings
+                      to connect or deploy it.
                     </p>
                     <button
                       className="button primary"
@@ -787,7 +787,7 @@ export default function App() {
           What stays private?
         </button>
         <a
-          href="https://github.com/ashuujha/midnight-secret-trail"
+          href="https://github.com/ashuujha/cat-bluff"
           target="_blank"
           rel="noreferrer"
         >

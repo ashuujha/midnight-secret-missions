@@ -444,7 +444,7 @@ export async function readTable(
   const l = Game.ledger(state.data);
   if (l.schemaVersion !== 3n)
     throw new Error(
-      "This is not the Cat Bluff card contract. The old Secret Trail address cannot be used.",
+      "This address is not a Cat Bluff five-cat (V3) contract. Check the address in settings.",
     );
   const room = fromHex(roomId);
   if (!l.roomSizes.member(room))

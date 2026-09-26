@@ -251,7 +251,7 @@ export function LocationCard({
     <>
       <span className="card-topline">
         <span>{String(location + 1).padStart(2, '0')}</span>
-        <span>SECRET TRAIL</span>
+        <span>ARCHIVED ROUTE GAME</span>
       </span>
       <PlaceArt place={location} />
       <strong>{place.name}</strong>
