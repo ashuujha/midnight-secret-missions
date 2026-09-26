@@ -98,7 +98,12 @@ export function MidnightProvider({ children }: PropsWithChildren) {
 
   const connect = useCallback(async () => {
     const version = ++connectionVersion.current;
-    const wallet = connector ?? findLace();
+    // Always look up the current injection; the extension may have restarted.
+    const wallet = findLace();
+    setConnectedAPI(null);
+    setAddress(null);
+    setDustAddress(null);
+    setDustBalance(null);
     if (!wallet) {
       setStatus('not-installed');
       setError('Lace wallet was not found. Install Lace, enable Midnight, and reload this page.');
@@ -108,38 +113,53 @@ export function MidnightProvider({ children }: PropsWithChildren) {
     setStatus('connecting');
     setError(null);
 
+    let connectionStep = 'Wallet access';
     try {
       const connection = await wallet.connect(MIDNIGHT_NETWORK);
       if (connectionVersion.current !== version) return;
-      const configuration = await connection.getConfiguration();
+      connectionStep = 'Loading wallet details';
+      const [configuration, { unshieldedAddress }] = await Promise.all([
+        connection.getConfiguration(),
+        connection.getUnshieldedAddress(),
+      ]);
       if (connectionVersion.current !== version) return;
       if (configuration.networkId !== MIDNIGHT_NETWORK) {
         throw new Error(
           `Network mismatch: Lace is on ${configuration.networkId}; ${MIDNIGHT_NETWORK} is required.`,
         );
       }
-      const [{ unshieldedAddress }, { dustAddress: connectedDustAddress }, balance] = await Promise.all([
-        connection.getUnshieldedAddress(),
-        connection.getDustAddress(),
-        connection.getDustBalance(),
-      ]);
-      if (connectionVersion.current !== version) return;
       setConnector(wallet);
       setConnectedAPI(connection);
       setAddress(unshieldedAddress);
-      setDustAddress(connectedDustAddress);
       setStatus('connected');
-      setDustBalance(balance);
+
+      // DUST queries can wait on wallet sync. They are useful for fee guidance,
+      // but should not hold the connection or room controls hostage.
+      void Promise.resolve().then(() => connection.getDustAddress()).then(
+        ({ dustAddress: connectedDustAddress }) => {
+          if (connectionVersion.current === version) setDustAddress(connectedDustAddress);
+        },
+        () => {},
+      );
+      void Promise.resolve().then(() => connection.getDustBalance()).then(
+        (balance) => {
+          if (connectionVersion.current === version) setDustBalance(balance);
+        },
+        (balanceError) => {
+          if (connectionVersion.current === version)
+            setError(`DUST balance could not be loaded. ${friendlyWalletError(balanceError, MIDNIGHT_NETWORK)}`);
+        },
+      );
     } catch (connectionError) {
       if (connectionVersion.current !== version) return;
       setConnectedAPI(null);
       setAddress(null);
       setDustAddress(null);
       setDustBalance(null);
-      setError(friendlyWalletError(connectionError, MIDNIGHT_NETWORK));
+      setError(`${connectionStep}: ${friendlyWalletError(connectionError, MIDNIGHT_NETWORK)}`);
       setStatus('ready');
     }
-  }, [connector]);
+  }, []);
 
   const disconnect = useCallback(() => {
     connectionVersion.current += 1;

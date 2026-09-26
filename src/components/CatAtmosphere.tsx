@@ -1,53 +1,24 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  MEMES,
-  lastReactionAt,
-  pickMeme,
-  type MemeId,
-  type MemeReaction,
-} from "../game/memes";
-import { reactMeme, stopSound } from "../game/sound";
+import { useEffect, useState } from "react";
+import { MEMES, type MemeReaction } from "../game/memes";
+import { stopSound } from "../game/sound";
 
 export function CatAtmosphere({
-  sound,
   motion,
   mode,
 }: {
-  sound: boolean;
   motion: boolean;
   mode: string;
 }) {
   const [reaction, setReaction] = useState<
     (MemeReaction & { key: number }) | null
   >(null);
-  const cursor = useRef<HTMLDivElement>(null);
-  const previous = useRef<MemeId>("pop");
-  const soundEnabled = useRef(sound);
-  useEffect(() => {
-    soundEnabled.current = sound;
-  }, [sound]);
   useEffect(() => {
     let clear: ReturnType<typeof setTimeout>;
     const receive = (event: Event) => {
       const detail = (event as CustomEvent<MemeReaction>).detail;
       setReaction({ ...detail, key: Date.now() });
       clearTimeout(clear);
-      clear = setTimeout(() => setReaction(null), 1750);
-    };
-    const click = (event: MouseEvent) => {
-      const target = (event.target as Element).closest("button,a");
-      if (
-        !target ||
-        target.closest(
-          "[data-meme-silent],.hand-card,.response-actions,.play-controls",
-        ) ||
-        target.matches(":disabled") ||
-        performance.now() - lastReactionAt() < 220
-      )
-        return;
-      const id = pickMeme(previous.current);
-      previous.current = id;
-      reactMeme(id, soundEnabled.current);
+      clear = setTimeout(() => setReaction(null), detail.durationMs ?? 1750);
     };
     const visibility = () => {
       if (document.hidden) {
@@ -56,12 +27,10 @@ export function CatAtmosphere({
       }
     };
     window.addEventListener("cat-bluff:meme", receive);
-    document.addEventListener("click", click);
     document.addEventListener("visibilitychange", visibility);
     return () => {
       clearTimeout(clear);
       window.removeEventListener("cat-bluff:meme", receive);
-      document.removeEventListener("click", click);
       document.removeEventListener("visibilitychange", visibility);
     };
   }, []);
@@ -81,10 +50,6 @@ export function CatAtmosphere({
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
-        if (cursor.current) {
-          cursor.current.style.transform = `translate3d(${x + 20}px,${y + 16}px,0) rotate(${Math.sin(x / 150) * 12}deg)`;
-          cursor.current.style.opacity = "1";
-        }
         const scene = document.querySelector<HTMLElement>(".hero-scene");
         if (scene) {
           const r = scene.getBoundingClientRect();
@@ -101,11 +66,9 @@ export function CatAtmosphere({
         }
       });
     };
-    const leave = () => {
-      if (cursor.current) cursor.current.style.opacity = "0";
-    };
     const click = (e: PointerEvent) => {
       if (
+        mode !== "home" ||
         !allowed() ||
         performance.now() - lastPaw < 180 ||
         decorations.size >= 4 ||
@@ -148,25 +111,25 @@ export function CatAtmosphere({
         );
     };
     const reset = () => {
-      leave();
       if (reduce.matches) decorations.forEach((p) => p.remove());
     };
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerdown", click, { passive: true });
-    document.addEventListener("pointerleave", leave);
     reduce.addEventListener("change", reset);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerdown", click);
-      document.removeEventListener("pointerleave", leave);
       reduce.removeEventListener("change", reset);
       decorations.forEach((p) => p.remove());
-      leave();
     };
-  }, [motion]);
+  }, [motion, mode]);
   useEffect(() => {
-    if (!motion || matchMedia("(prefers-reduced-motion: reduce)").matches)
+    if (
+      mode !== "home" ||
+      !motion ||
+      matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
       return;
     const targets = document.querySelectorAll<HTMLElement>("[data-reveal]");
     const observer = new IntersectionObserver(
@@ -177,10 +140,14 @@ export function CatAtmosphere({
             observer.unobserve(entry.target);
           }
         }),
-      { threshold: 0.1 },
+      { threshold: 0.12, rootMargin: "0px 0px -32px 0px" },
     );
     targets.forEach((el) => {
       el.classList.add("reveal-ready");
+      el.style.setProperty(
+        "--reveal-delay",
+        `${Number(el.dataset.revealOrder || 0) * 75}ms`,
+      );
       observer.observe(el);
     });
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
@@ -197,7 +164,7 @@ export function CatAtmosphere({
           const r = stage.getBoundingClientRect();
           stage.style.setProperty(
             "--roll",
-            `${(innerHeight / 2 - r.top) * 0.22}deg`,
+            `${Math.max(-32, Math.min(32, (innerHeight / 2 - r.top) * 0.09))}deg`,
           );
         }
       });
@@ -214,13 +181,15 @@ export function CatAtmosphere({
   }, [mode, motion]);
   return (
     <>
-      <div ref={cursor} className="cursor-cat" aria-hidden="true">
-        <img src="/memes/oiia.png" alt="" />
-      </div>
       {reaction && (
         <div
           key={reaction.key}
           className={`meme-reaction reaction-${MEMES[reaction.id].color} ${reaction.id === "oiia" ? "reaction-spin" : ""}`}
+          style={
+            reaction.durationMs
+              ? { animationDuration: `${reaction.durationMs}ms` }
+              : undefined
+          }
           aria-hidden="true"
         >
           <img src={MEMES[reaction.id].image} alt="" />

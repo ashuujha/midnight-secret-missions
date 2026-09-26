@@ -5,13 +5,11 @@
 
 **Cat Bluff Classic 52** uses one ordinary 52-card deck with a different cat image on every physical card. You know your own hand; everyone sees the required rank, the claims, and the growing face-down pile. Play your cards, decide whether to trust your friends, and call **BLUFF!** when the risk feels worth it.
 
-**Release status:** The Classic 52 contract is deployed on Midnight Preprod and its public beta is online. Local practice and the compiled-circuit test suite work. A complete two-wallet Preprod round has **not yet been verified**, so the short product trailer is not presented as a live multiplayer demo.
+**Release status:** The Classic 52 contract is deployed on Midnight Preprod and the game is live at the main Cat Bluff URL. Local practice and the compiled-circuit test suite work. A complete two-wallet Preprod round has **not yet been verified**, so the short product trailer is not presented as a live multiplayer demo.
 
-**Repository note:** This default README documents the [Classic 52 branch](https://github.com/ashuujha/cat-bluff/tree/feature/classic-52). The `main` checkout and [current live site](https://cat-bluff-ashuu.vercel.app/) still contain the earlier V3 game; follow the branch-specific clone command below for the V4 source and tests.
+![Cat Bluff clubhouse landing page](screenshots/clubhouse-home.png)
 
-![Cat Bluff clubhouse landing page](https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/screenshots/clubhouse-home.png)
-
-[Play Classic 52 beta](https://cat-bluff-classic52-beta.vercel.app/) · [Product X: @catbluffgame](https://x.com/catbluffgame) · [Source code](https://github.com/ashuujha/cat-bluff/tree/feature/classic-52)
+[Play Cat Bluff](https://cat-bluff-ashuu.vercel.app/) · [Product X: @catbluffgame](https://x.com/catbluffgame) · [Source code](https://github.com/ashuujha/cat-bluff)
 
 ## Contents
 
@@ -34,9 +32,9 @@
 
 | Experience | Link | What it offers |
 | --- | --- | --- |
-| **Classic 52 public beta (V4)** | [cat-bluff-classic52-beta.vercel.app](https://cat-bluff-classic52-beta.vercel.app/) | The 52-card game, guided local practice, and Lace-powered Preprod rooms. This is the version documented below. |
-| Earlier Cat Bluff game (V3) | [cat-bluff-ashuu.vercel.app](https://cat-bluff-ashuu.vercel.app/) | The existing five-cat game. Its contract and rooms are separate from Classic 52. |
-| Source code | [`feature/classic-52` branch](https://github.com/ashuujha/cat-bluff/tree/feature/classic-52) | Current Classic 52 source, tests, assets, and this guide. |
+| **Cat Bluff Classic 52 (V4)** | [cat-bluff-ashuu.vercel.app](https://cat-bluff-ashuu.vercel.app/) | The 52-card game, guided local practice, and Lace-powered Preprod rooms. This is the version documented below. |
+| Preview mirror | [cat-bluff-classic52-beta.vercel.app](https://cat-bluff-classic52-beta.vercel.app/) | A separate Vercel deployment of Classic 52. |
+| Source code | [`main` branch](https://github.com/ashuujha/cat-bluff) | Classic 52 source, tests, assets, and this guide. |
 
 **Try it without a wallet:** choose **Learn in one hand**, select 2, 3, or 4 players, and deal against local bots. Practice is a teaching mode; it creates no proofs or blockchain transactions. Choose **Step by step** to advance every bot action yourself or **Relaxed auto** for a slower automated pace.
 
@@ -48,8 +46,7 @@ Live setup and moves wait for real proofs, Lace approval, and network confirmati
 
 | Version | Network | Contract address | Status |
 | --- | --- | --- | --- |
-| **Classic 52 V4** | Midnight Preprod | [`616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946`](https://preprod.midnightexplorer.com/contracts/0x616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946) | Deployed; schema 4 and ten verifier keys checked. Configured in the Classic 52 beta. |
-| Earlier Cat Bluff V3 | Midnight Preprod | [`3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e`](https://preprod.midnightexplorer.com/contracts/0x3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e) | Separate five-cat rules and existing rooms. |
+| **Classic 52 V4** | Midnight Preprod | [`616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946`](https://preprod.midnightexplorer.com/contracts/0x616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946) | Deployed; schema 4 and ten verifier keys checked. Configured in the live game. |
 
 The recorded V4 deployment is at Preprod block **2,715,402**, transaction `065011fb07056ea87e768428697ed0f5bd27cd6846b69e2f3fae77b380866591`. A **read-only indexer check on 26 September 2026** returned this contract's latest indexed action at block **2,719,995**, transaction `025063b7c8b7f2d3c4989880720c32dec25781944cf0135478629408b8be3dde`. That latest-action snapshot can change; it confirms contract activity, not a completed multiplayer round.
 
@@ -62,7 +59,7 @@ curl --fail-with-body --silent --show-error \
   --data-raw '{"query":"query Verify($address: HexEncoded!) { contractAction(address: $address) { address transaction { hash block { height } } } }","variables":{"address":"616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946"}}'
 ```
 
-A Vercel frontend deployment does not deploy a Compact contract. V3 and V4 use different schemas and must keep their addresses in the matching environment variables.
+A Vercel frontend deployment does not deploy a Compact contract. The current live game uses the V4 address above.
 
 ### Classic 52 circuit flow
 
@@ -137,10 +134,10 @@ The frontend loads the full 52-card art catalog together, so an image request do
 
 ## Setup & Run Locally
 
-Clone the Classic 52 branch, install dependencies, and compile both the compatibility and Classic 52 contracts:
+Clone the repository, install dependencies, and compile both the compatibility and Classic 52 contracts:
 
 ```bash
-git clone --branch feature/classic-52 https://github.com/ashuujha/cat-bluff.git
+git clone https://github.com/ashuujha/cat-bluff.git
 cd cat-bluff
 npm ci
 compact update 0.31.1
@@ -152,24 +149,22 @@ Create `.env.local` using **public build configuration only**:
 ```bash
 cat > .env.local <<'ENV'
 VITE_MIDNIGHT_NETWORK=preprod
-VITE_CAT_BLUFF_CONTRACT_ADDRESS=3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e
 VITE_CLASSIC_CONTRACT_ADDRESS=616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946
 ENV
 npm run dev
 ```
 
-Open the URL Vite prints (normally `http://localhost:5173`). **Learn in one hand** starts practice immediately. For Preprod play, create a room with Lace, share its invite link, join from another wallet, and let each player complete their shuffle and deal-share turns. The host can then begin the first claim. Invitations for earlier V3 rooms still open their separate game.
+Open the URL Vite prints (normally `http://localhost:5173`). **Learn in one hand** starts practice immediately. For Preprod play, create a room with Lace, share its invite link, join from another wallet, and let each player complete their shuffle and deal-share turns. The host can then begin the first claim.
 
 | Variable | Purpose |
 | --- | --- |
 | `VITE_MIDNIGHT_NETWORK` | Network requested from Lace; use `preprod` here |
 | `VITE_CLASSIC_CONTRACT_ADDRESS` | Deployed Classic 52 V4 contract |
-| `VITE_CAT_BLUFF_CONTRACT_ADDRESS` | Earlier V3 contract, retained for existing rooms |
 | `VITE_CLASSIC_PROOF_SERVER_URL` | Optional compatible prover for V4; omit to use Lace's configured prover |
 
 All `VITE_*` values are embedded into the browser build. **Never put a wallet seed, signing key, password, or private table key in them.** Restart Vite after changing local configuration; rebuild a hosted frontend after changing its variables. The site's prover variable does **not** change Lace's own proof-server setting or wallet fee balancing.
 
-A real device-local prover must be running if Lace points to `http://localhost:6300`. The optional `npm run proof:bridge` forwards to a hosted service and sends private inputs there. It is not a device-private substitute. For a separate V4 contract, the UI offers **Set up live play → Connect Lace → Deploy Classic 52 with Lace**; a wallet signature is required. The older command-line deploy helper targets V3.
+A real device-local prover must be running if Lace points to `http://localhost:6300`. The optional `npm run proof:bridge` forwards to a hosted service and sends private inputs there. It is not a device-private substitute. The V4 contract above is already deployed; a wallet signature is required for each live room action.
 
 ### Troubleshooting
 
@@ -196,7 +191,7 @@ npm run check
 
 **Verified locally on 26 September 2026:** `npm test` completed **107 tests across 14 suites, 0 failures**. Tests cover the compiled V4 circuits; 2-, 3-, and 4-player card conservation; invalid shuffles; ownership; truthful and false claims; full-pile penalties; final-card settlement; rematches; private-state recovery; wallet errors; Cat Chaos; and public-read behavior. `npm run check` and the Vercel production build passed for the current game code.
 
-The [saved test-output image](https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/screenshots/classic52-tests.png) is an **earlier 79-test run**. Run `npm test` for the current 107-test result. These are local tests and do not establish a completed wallet-to-wallet Preprod round. Browser checks also covered the 1440 px desktop and 390 px mobile layouts, card selection, practice pacing, light/dark themes, sound, and reduced motion.
+The [saved test-output image](screenshots/classic52-tests.png) is an **earlier 79-test run**. Run `npm test` for the current 107-test result. These are local tests and do not establish a completed wallet-to-wallet Preprod round. Browser checks also covered the 1440 px desktop and 390 px mobile layouts, card selection, practice pacing, light/dark themes, sound, and reduced motion.
 
 An optional synthetic-state proof benchmark is available with `npm run benchmark:proof` and a compatible local prover on port 6301. It submits no transactions and excludes Lace and network latency.
 
@@ -216,13 +211,13 @@ This measures one local read service, **not** 100 wallets generating proofs or s
 
 ## CI/CD
 
-The [`main` GitHub Actions workflow](.github/workflows/ci.yml) runs on pushes to `main` and on pull requests. It installs Node.js 22 and Compact, compiles and tests **the code checked out for that run**, builds the app, and typechecks deployment tooling. The badge below the title reports `main`; its latest checked run was successful on 26 September 2026, but that run validates the earlier V3 release. The [Classic 52 branch workflow](https://github.com/ashuujha/cat-bluff/blob/feature/classic-52/.github/workflows/ci.yml) adds both contract compiles and the 100-reader simulation. Classic 52 has 107 passing local tests; branch pushes alone do not trigger this workflow without a pull request.
+The [GitHub Actions workflow](.github/workflows/ci.yml) runs on pushes to `main` and on pull requests. It checks out the code, installs Node.js 22 and dependencies, installs Compact CLI 0.5.2/compiler 0.31.1, compiles both contracts, runs `npm test` and the local 100-reader simulation, builds the dApp, and typechecks deployment tooling. The badge below the title reports the latest `main` workflow result.
 
-Vercel builds the app with `npm run build:vercel` and serves `dist/`. Compiled V4 proving assets are copied under `/classic52/`. The [Classic 52 beta](https://cat-bluff-classic52-beta.vercel.app/) is a **separate Vercel project** from the [current main live game](https://cat-bluff-ashuu.vercel.app/). The beta was deployed from the Classic 52 source; future beta changes require another deployment. The serverless `/api/table` function serves bounded public room snapshots only; gameplay transactions still go through each player's Lace/Midnight connection.
+Vercel builds the app with `npm run build:vercel` and serves `dist/` at [cat-bluff-ashuu.vercel.app](https://cat-bluff-ashuu.vercel.app/). Compiled V4 proving assets are copied under `/classic52/`. The [Classic 52 preview mirror](https://cat-bluff-classic52-beta.vercel.app/) remains a separate Vercel project. The serverless `/api/table` function serves bounded public room snapshots only; gameplay transactions still go through each player's Lace/Midnight connection.
 
 ## Product Proposal
 
-[PROPOSAL.md](https://github.com/ashuujha/cat-bluff/blob/feature/classic-52/PROPOSAL.md) covers the product and users, why Midnight is needed, the public/private data model, and a bounded Mainnet feasibility plan. It identifies Cat Bluff as a **Consumer & Social / Gaming** product. A Mainnet pilot still depends on complete live rounds, measured proving cost and latency, disconnect recovery, and an independent security review. Program approval of this revised card mechanic has **not** been recorded in this repository.
+[PROPOSAL.md](PROPOSAL.md) covers the product and users, why Midnight is needed, the public/private data model, and a bounded Mainnet feasibility plan. It identifies Cat Bluff as a **Consumer & Social / Gaming** product. A Mainnet pilot still depends on complete live rounds, measured proving cost and latency, disconnect recovery, and an independent security review. Program approval of this revised card mechanic has **not** been recorded in this repository.
 
 ## Screenshots
 
@@ -230,30 +225,29 @@ These show the real current UI in **local practice**. They do not depict a fabri
 
 | View | Capture |
 | --- | --- |
-| Clubhouse landing | [Desktop welcome](https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/screenshots/clubhouse-home.png) |
-| Game table | [Desktop Classic 52 table](https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/screenshots/classic52-table.png) |
-| Phone layout | [390 px Classic 52 table](https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/screenshots/classic52-mobile.png) |
-| Alternative theme | [Dark clubhouse table](https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/screenshots/classic52-dark.png) |
-| Tests | [Archived 79-test output](https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/screenshots/classic52-tests.png) |
+| Clubhouse landing | [Desktop welcome](screenshots/clubhouse-home.png) |
+| Game table | [Desktop Classic 52 table](screenshots/classic52-table.png) |
+| Phone layout | [390 px Classic 52 table](screenshots/classic52-mobile.png) |
+| Alternative theme | [Dark clubhouse table](screenshots/classic52-dark.png) |
+| Tests | [Archived 79-test output](screenshots/classic52-tests.png) |
 
-![Classic 52 practice table with required rank, pile, seats and private hand](https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/screenshots/classic52-table.png)
+![Classic 52 practice table with required rank, pile, seats and private hand](screenshots/classic52-table.png)
 
-<img src="https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/screenshots/classic52-mobile.png" alt="Classic 52 practice table at 390-pixel mobile width" width="280">
+<img src="screenshots/classic52-mobile.png" alt="Classic 52 practice table at 390-pixel mobile width" width="280">
 
 ## Demo Video
 
 **Full gameplay demo URL:** _To be added after recording a complete two-wallet Classic 52 Preprod round._
 
-A [22-second product trailer](https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/public/media/cat-bluff-launch.mp4) and [poster](https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/public/media/cat-bluff-launch.jpg) are already available. The trailer shows local practice and the trust-or-BLUFF moment; **it is not proof of a completed live multiplayer round**. Music attribution is in [Media Credits](#media-credits).
+A [22-second product trailer](public/media/cat-bluff-launch.mp4) and [poster](public/media/cat-bluff-launch.jpg) are already available. The trailer shows local practice and the trust-or-BLUFF moment; **it is not proof of a completed live multiplayer round**. Music attribution is in [Media Credits](#media-credits).
 
 For the full demo, record: connect two Lace wallets → create and invite to a room → both players shuffle and share the deal → show each private hand separately → submit a face-down claim → trust or call BLUFF → reveal only that turn's cards → transfer the whole pile to the correct player → show a confirmed transaction receipt. Show the current test output and CI badge separately. If proofs take time, label any edited wait accurately and keep private keys and recovery material out of the recording.
 
-## File Structure (Classic 52 branch)
+## File Structure
 
 ```text
 .github/workflows/ci.yml        CI for main pushes and pull requests
 contracts/cat-bluff52.compact   Classic 52 V4 contract
-contracts/cat-bluff.compact     Earlier V3 compatibility contract
 src/components/ClassicGame.tsx  Lobby, practice, live table and round states
 src/game/                    Card catalog, rules, invites and Cat Chaos
 src/midnight/classic52.ts      V4 wallet/proof/contract client
@@ -271,17 +265,17 @@ README.md                    This guide
 
 | Requirement | Status / evidence |
 | --- | --- |
-| Public repository and full README | ✓ [Classic 52 branch](https://github.com/ashuujha/cat-bluff/tree/feature/classic-52), setup, usage, rules and privacy documentation |
-| Live demo and Preprod address | ✓ [Public beta](https://cat-bluff-classic52-beta.vercel.app/) and [V4 contract](#contract-address); **full multiplayer round still unverified** |
-| Tests | ✓ 107 local tests passed, 0 failed; [older test screenshot](https://raw.githubusercontent.com/ashuujha/cat-bluff/feature/classic-52/screenshots/classic52-tests.png) shows 79 |
-| CI workflow and badge | ✓ [Workflow](.github/workflows/ci.yml) and green `main` badge; current beta branch is separately validated locally |
+| Public repository and full README | ✓ [`main` branch](https://github.com/ashuujha/cat-bluff), setup, usage, rules and privacy documentation |
+| Live demo and Preprod address | ✓ [Live Classic 52 game](https://cat-bluff-ashuu.vercel.app/) and [V4 contract](#contract-address); **full multiplayer round still unverified** |
+| Tests | ✓ 107 local tests passed, 0 failed; [older test screenshot](screenshots/classic52-tests.png) shows 79 |
+| CI workflow and badge | ✓ [Workflow](.github/workflows/ci.yml) and `main` badge above |
 | Product X profile | ✓ [@catbluffgame](https://x.com/catbluffgame) |
 | Gameplay demo video | ✗ URL intentionally left open above; a practice-only trailer exists |
-| Minimum 15 meaningful commits | More than 15 commits in the Classic 52 branch history; reviewers should assess their substance |
+| Minimum 15 meaningful commits | More than 15 commits in the repository history; reviewers should assess their substance |
 
 ## Media Credits
 
-Image, audio and font sources are recorded in [public/media-credits.json](https://github.com/ashuujha/cat-bluff/blob/feature/classic-52/public/media-credits.json). Third-party cat-meme media retains its original rights and is not covered by the code license; permissions need review before a broader commercial release. Browser-synthesized game cues are separate from meme clips. The product trailer adapts [“Happy Beats & Business Moves Vol. 12” by Sascha Ende](https://ende.app/en/song/12881-happy-beats-business-moves-vol-12) under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Image, audio and font sources are recorded in [public/media-credits.json](public/media-credits.json). Third-party cat-meme media retains its original rights and is not covered by the code license; permissions need review before a broader commercial release. Browser-synthesized game cues are separate from meme clips. The product trailer adapts [“Happy Beats & Business Moves Vol. 12” by Sascha Ende](https://ende.app/en/song/12881-happy-beats-business-moves-vol-12) under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ## License
 

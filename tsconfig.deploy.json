@@ -4,5 +4,5 @@
     "types": ["node"],
     "jsx": "react-jsx"
   },
-  "include": ["deploy"]
+  "include": ["deploy", "scripts/benchmark-classic-proofs.ts", "scripts/load-test-tables.ts", "src/vite-env.d.ts"]
 }

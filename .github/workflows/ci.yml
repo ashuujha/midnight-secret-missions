@@ -24,8 +24,10 @@ jobs:
       - name: Install Compact compiler
         env:
           COMPACT_UNMANAGED_INSTALL: ${{ runner.temp }}/compact-bin
+          # Compact queries GitHub releases; authenticate to avoid shared-runner rate limits.
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          curl --fail --location --silent --show-error \
+          curl --fail --location --silent --show-error --retry 3 \
             https://github.com/midnightntwrk/compact/releases/download/compact-v0.5.2/compact-installer.sh \
             --output "$RUNNER_TEMP/compact-installer.sh"
           sh "$RUNNER_TEMP/compact-installer.sh"
@@ -35,6 +37,8 @@ jobs:
         run: npm run compile
       - name: Test contract
         run: npm test
+      - name: Simulate 100 concurrent table readers
+        run: npm run test:load
       - name: Build dApp
         run: npm run build
       - name: Typecheck deployment script

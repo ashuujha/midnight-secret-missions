@@ -9,3 +9,11 @@ midnight-level-db/
 public/keys/
 public/zkir/
 *.log
+
+# Classic 52 proving artifacts are rebuilt with pinned Compact in CI and Vercel.
+managed/cat-bluff52/keys/
+managed/cat-bluff52/zkir/
+public/classic52/
+
+# Local video project; publish only the finished media in public/media.
+brag-output/

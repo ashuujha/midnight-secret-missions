@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { startTablePolling } from "../utils/table-polling";
 import { useMidnight } from "./useMidnight";
 import { readInvite, type Table } from "../game/cat-bluff";
 import type {
@@ -98,20 +99,21 @@ export function useCatBluff(active: boolean) {
         c.saveHand(wallet.address, contract, room, next);
         persist(next);
       }
+      return true;
     } catch (e) {
       if (generation.current === version)
         setReadError(
           e instanceof Error ? e.message : "The table could not be refreshed.",
         );
+      return false;
     } finally {
       polling.current = false;
     }
   }, [active, contract, room, wallet.networkId, wallet.address, persist]);
   useEffect(() => {
-    void refresh();
-    const id = window.setInterval(() => void refresh(), 4000);
-    return () => clearInterval(id);
-  }, [refresh]);
+    if (!active || !validAddress(contract) || !validAddress(room)) return;
+    return startTablePolling(refresh);
+  }, [refresh, active, contract, room]);
   useEffect(() => {
     if (!active) return;
     void warmProofServer().catch(() => {});

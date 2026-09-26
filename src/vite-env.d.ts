@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_CONTRACT_ADDRESS?: string;
   readonly VITE_CAT_BLUFF_CONTRACT_ADDRESS?: string;
   readonly VITE_PROOF_SERVER_URL?: string;
+  readonly VITE_CLASSIC_CONTRACT_ADDRESS?: string;
+  readonly VITE_CLASSIC_PROOF_SERVER_URL?: string;
 }
 
 interface ImportMeta {
