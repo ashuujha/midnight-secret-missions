@@ -5,7 +5,7 @@
 
 Cat Bluff is a **2–4 player cat-meme card game** built around private hands, public claims and calling a friend's bluff. The card rank determines the rules; the cat picture gives each card its personality. Midnight verifies legal moves and challenged plays while unchallenged cards stay face down.
 
-**Release status:** Classic 52 is deployed on Preprod and available in preview. Its 95 tests and production build pass. A complete multiplayer Preprod playthrough and production promotion remain pending; production currently serves the earlier five-cat game.
+**Release status:** Classic 52 is deployed on Preprod and available in preview. A complete multiplayer Preprod playthrough and production promotion remain pending; production currently serves the earlier five-cat game. Capacity changes described below require the next frontend deployment.
 
 ![Classic 52 practice table](screenshots/classic52-table.png)
 
@@ -135,17 +135,38 @@ If Lace points to `http://localhost:6300`, a compatible **real local proof serve
 npm test
 npm run build
 npm run typecheck:deploy
+# Local 100-client read-service simulation (no live network load):
+npm run test:load
+# Repeat for smaller rooms:
+LOAD_PLAYERS=2 npm run test:load
+LOAD_PLAYERS=3 npm run test:load
 # Recompile both card contracts, test, build, check the earlier deployment CLI:
 npm run check
 ```
 
-The current suite has **95 passing tests**, covering 2/3/4-player deals, card conservation, private ownership, invalid shuffles/openings, turns, pile transfers, final claims, rematches, wallet recovery and Cat Chaos. The [test screenshot](screenshots/classic52-tests.png) records an earlier 79-test run.
+The suite covers 2/3/4-player deals, card conservation, private ownership, invalid shuffles/openings, turns, pile transfers, final claims, rematches, wallet recovery, Cat Chaos and concurrent public reads. The [test screenshot](screenshots/classic52-tests.png) records an earlier 79-test run.
 
 Tests execute compiled circuits locally; they do not establish a completed multi-wallet Preprod game. For an optional synthetic-state proof benchmark with a compatible local prover on port 6301, run `npm run benchmark:proof`. It submits no transactions and excludes wallet/network latency.
 
+### Capacity and public updates
+
+The Classic 52 production build reads `/api/table` for passive updates to the configured contract. This Vercel Node function shares one in-flight indexer read across callers, caches the public ledger for two seconds, and returns only the requested room's public/encrypted state and latest 20 history records. Vercel may cache that response for another two seconds. Moves and confirmation reads bypass this cache and read Midnight directly. Older snapshots cannot roll back a confirmed move.
+
+Active tabs refresh every 4–5 seconds after the previous request finishes. Hidden/offline tabs pause; failures back off to roughly 30 seconds. The server also limits upstream reads during outages. It accepts only `VITE_CLASSIC_CONTRACT_ADDRESS` on `VITE_MIDNIGHT_NETWORK`, with fixed queries and bounded responses. It never accepts wallet secrets or proof inputs. Cache entries are per function instance, so multiple regions/instances can each make an upstream read; this is not a global rate limit. Local Vite development, custom contract invitations and V3 tables still read the indexer directly.
+
+Local load checks on September 26, 2026 used **100 HTTP clients**, real compiled-circuit room fixtures, and a simulated 100 ms indexer. Each scenario sent 800 requests over approximately 29 seconds:
+
+| Seats per room | Rooms | Errors | Upstream reads | Read latency, 95th percentile |
+| --- | --- | --- | --- | --- |
+| 2 | 50 | 0 | 8 instead of 800 | 859 ms |
+| 3 | 34 | 0 | 8 instead of 800 | 808 ms |
+| 4 | 25 | 0 | 8 instead of 800 | 621 ms |
+
+These measure one local public-read service, not 100 wallets proving or submitting transactions. A two-player-room run with concurrent compilation measured 1,098 ms before the isolated rerun above. Vercel deployment limits, real indexer latency, growing contract history, DUST availability and Preprod throughput still need a staged live test. Proofs continue to use each player's configured prover; no shared hosted prover or new privacy tradeoff is introduced. There is no guarantee of instant moves or 100 simultaneous live proofs.
+
 ## CI/CD
 
-[CI](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and pinned Compact, installs dependencies, compiles the branch's contracts, tests, builds the app and typechecks the deployment CLI. The title badge tracks `main`; [PR #4](https://github.com/ashuujha/cat-bluff/pull/4) validates Classic 52.
+[CI](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and pinned Compact, installs dependencies, compiles the branch's contracts, tests, runs the local 100-client read simulation, builds the app/API and typechecks the deployment CLI and load script. The title badge tracks `main`; [PR #4](https://github.com/ashuujha/cat-bluff/pull/4) validates Classic 52.
 
 Vercel builds the preview with `npm run build:vercel`. V4 proving keys and ZKIR are generated during builds and copied to `/classic52/`. A clean checkout needs `npm run compile` before running the app. Production promotion awaits a complete verified multiplayer round.
 
@@ -159,7 +180,7 @@ The Classic 52 video is pending. Show connect → invite/join → shuffle/deal �
 
 ## Submission Checklist
 
-- ✓ Public repository, docs, CI, 95 passing tests, verified V4 address and more than 15 meaningful commits.
+- ✓ Public repository, docs, CI, contract tests, verified V4 address and more than 15 meaningful commits.
 - ✗ Complete live multiplayer verification and Classic 52 production promotion.
 - ✗ Current game demo video.
 - ✗ Dedicated product X profile linked here.

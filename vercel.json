@@ -1,6 +1,9 @@
 {
   "buildCommand": "npm run build:vercel",
   "outputDirectory": "dist",
+  "functions": {
+    "api/table.ts": { "maxDuration": 30 }
+  },
   "headers": [
     {
       "source": "/assets/(.*)",

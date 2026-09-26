@@ -37,6 +37,8 @@ jobs:
         run: npm run compile
       - name: Test contract
         run: npm test
+      - name: Simulate 100 concurrent table readers
+        run: npm run test:load
       - name: Build dApp
         run: npm run build
       - name: Typecheck deployment script

@@ -8,6 +8,7 @@ import type {
   TransactionStage,
 } from "../midnight/cat-bluff";
 import { friendlyCircuitError } from "../utils/errors";
+import { startTablePolling } from "../utils/table-polling";
 const valid = (s: string) => /^[a-f0-9]{64}$/i.test(s);
 const load = () => import("../midnight/classic52");
 const configured =
@@ -35,11 +36,12 @@ export function useClassic52(active: boolean) {
     [readError, setReadError] = useState(""),
     [result, setResult] = useState<TransactionResult | null>(null);
   const current = useRef<Snapshot | null>(null),
+    confirmedHeight = useRef(0),
     lock = useRef(false),
     polling = useRef(false),
     version = useRef(0),
     mounted = useRef(true);
-  const identity = `${active}:${wallet.address}:${contract}`;
+  const identity = `${active}:${wallet.networkId}:${wallet.address}:${contract}`;
   const identityRef = useRef(identity);
   identityRef.current = identity;
   const scope = `${identity}:${room}`;
@@ -59,6 +61,12 @@ export function useClassic52(active: boolean) {
     ) => {
       const c = await load();
       if (!mounted.current || identityRef.current !== expectedIdentity) return;
+      if (c.isOlderSnapshot(s, current.current, confirmedHeight.current)) return;
+      if (current.current?.room === s.room && s.blockHeight === current.current.blockHeight &&
+          s.revision === current.current.revision) {
+        setReadError("");
+        return;
+      }
       const v = c.toView(s, privateSession);
       current.current = s;
       setSnapshot(s);
@@ -71,6 +79,7 @@ export function useClassic52(active: boolean) {
   useEffect(() => {
     version.current++;
     current.current = null;
+    confirmedHeight.current = 0;
     setSnapshot(null);
     setView(null);
     setError("");
@@ -93,14 +102,16 @@ export function useClassic52(active: boolean) {
       const privateSession = wallet.address
         ? c.loadSession(wallet.address, contract, room)
         : null;
-      const s = await c.readTable(contract, room, wallet.networkId);
+      const s = await c.readTable(contract, room, wallet.networkId, { background: true });
       if (generation === version.current && !lock.current)
         await apply(s, privateSession, identity);
+      return true;
     } catch (e) {
       if (mounted.current && generation === version.current)
         setReadError(
           e instanceof Error ? e.message : "The table could not be refreshed.",
         );
+      return false;
     } finally {
       polling.current = false;
     }
@@ -114,11 +125,9 @@ export function useClassic52(active: boolean) {
     apply,
   ]);
   useEffect(() => {
-    void refresh();
-    if (!active) return;
-    const interval = setInterval(() => void refresh(), 4000);
-    return () => clearInterval(interval);
-  }, [refresh, active]);
+    if (!active || !valid(contract) || !valid(room)) return;
+    return startTablePolling(refresh);
+  }, [refresh, active, contract, room]);
   useEffect(() => {
     if (
       !active ||
@@ -216,6 +225,7 @@ export function useClassic52(active: boolean) {
           },
         );
         if (!usable()) return false;
+        confirmedHeight.current = Number(receipt.blockHeight);
         setResult(receipt);
         // A confirmed transaction remains successful even if the follow-up indexer read fails.
         try {
@@ -224,6 +234,8 @@ export function useClassic52(active: boolean) {
             nextRoom,
             wallet.networkId,
           );
+          if (c.isOlderSnapshot(updated, current.current, confirmedHeight.current))
+            throw new Error("Indexer is behind the confirmed move.");
           await apply(updated, session, identity);
         } catch {
           if (usable())

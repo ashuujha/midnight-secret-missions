@@ -13,6 +13,7 @@
     "typecheck:deploy": "tsc --noEmit -p tsconfig.deploy.json",
     "compile": "npm run compile:legacy && npm run compile:classic",
     "test": "tsx --test tests/*.test.ts",
+    "test:load": "tsx scripts/load-test-tables.ts",
     "check": "npm run compile && npm test && npm run build && npm run typecheck:deploy",
     "deploy:preprod": "tsx deploy/deploy.ts --network preprod",
     "proof:bridge": "node scripts/lace-proof-bridge.mjs",

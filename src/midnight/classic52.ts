@@ -4,19 +4,20 @@ import {
   deployContract,
   findDeployedContract,
 } from "@midnight-ntwrk/midnight-js-contracts";
-import { indexerPublicDataProvider } from "@midnight-ntwrk/midnight-js-indexer-public-data-provider";
-import { setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
 import {
   fromHex,
   toHex,
 } from "@midnight-ntwrk/midnight-js-protocol/compact-runtime";
 import * as Game from "../../managed/cat-bluff52/contract/index.js";
+import { decodeSnapshot, projectTable, type Snapshot } from "./classic-public";
+import { fetchPublicLedger } from "./public-ledger";
+export type { Snapshot } from "./classic-public";
+export { isOlderSnapshot } from "./classic-public";
 import { CachedZkConfigProvider } from "./cached-zk-config";
 import { createWalletProviders } from "./wallet-providers";
 import {
   shuffledDeck,
   type ClassicView,
-  type TurnRecord,
 } from "../game/classic-rules";
 import type { TransactionStage, TransactionResult } from "./cat-bluff";
 export type Session = { secret: string; key: string; id: string };
@@ -125,18 +126,6 @@ export function loadSession(
     );
   }
 }
-export type Snapshot = {
-  room: string;
-  state: Game.Room;
-  players: string[];
-  keys: ReturnType<typeof Game.pureCircuits.publicKey>[];
-  deck: Game.CipherCard[];
-  owners: number[];
-  custodians: number[];
-  selected: boolean[];
-  history: TurnRecord[];
-  revision: string;
-};
 const pointId = (p: { x: bigint; y: bigint }) => `${p.x}:${p.y}`;
 const cardPoints = new Map(
   Array.from({ length: 52 }, (_, id) => [
@@ -200,70 +189,19 @@ export async function readTable(
   address: string,
   roomId: string,
   network: string,
+  options: { background?: boolean } = {},
 ): Promise<Snapshot> {
-  setNetworkId(network);
-  const host = network === "preview" ? "preview" : "preprod";
-  const provider = indexerPublicDataProvider(
-    `https://indexer.${host}.midnight.network/api/v4/graphql`,
-    `wss://indexer.${host}.midnight.network/api/v4/graphql/ws`,
-  );
-  const state = await provider.queryContractState(address);
-  if (!state) throw new Error("Classic 52 contract was not found.");
-  const ledger = Game.ledger(state.data);
-  if (ledger.schemaVersion !== 4n)
-    throw new Error(
-      "This address uses different game rules. Classic 52 needs its V4 contract; earlier five-cat tables remain separate.",
-    );
-  const room = fromHex(roomId);
-  if (!ledger.rooms.member(room))
-    throw new Error(
-      "This room is not confirmed yet. Wait for the host’s creation transaction.",
-    );
-  const t = ledger.rooms.lookup(room);
-  const history: TurnRecord[] = [];
-  for (let i = Math.max(1, Number(t.play) - 19); i <= Number(t.play); i++) {
-    const r = ledger.turns.lookup(
-      Game.pureCircuits.turnKey(room, t.round, BigInt(i)),
-    );
-    const revealed = r.revealed.filter((c) => c !== 255n).map(Number);
-    history.push({
-      number: i,
-      actor: Number(r.actor),
-      rank: Number(r.rank),
-      quantity: Number(r.quantity),
-      pileSize: Number(r.pileSize),
-      passed: Array.from(
-        { length: Number(r.passes) },
-        (_, n) => (Number(r.actor) + n + 1) % Number(t.size),
-      ),
-      ...(r.challenger === 255n ? {} : { challenger: Number(r.challenger) }),
-      outcome: (["pending", "passed", "truth", "bluff"] as const)[
-        Number(r.outcome)
-      ],
-      ...(r.receiver === 255n ? {} : { receiver: Number(r.receiver) }),
-      ...(revealed.length ? { revealed } : {}),
-    });
+  // Only passive reads of the configured deployment use the shared public cache.
+  // Moves, confirmations, custom invites and local development read Midnight directly.
+  if (options.background && import.meta.env?.PROD &&
+      address.toLowerCase() === import.meta.env.VITE_CLASSIC_CONTRACT_ADDRESS?.trim().toLowerCase()) {
+    const query = new URLSearchParams({ contract: address.toLowerCase(), room: roomId.toLowerCase(), network });
+    const response = await fetch(`/api/table?${query}`, { signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error("Live table updates are temporarily unavailable. Retrying shortly.");
+    return decodeSnapshot(await response.text(), roomId.toLowerCase());
   }
-  return {
-    room: roomId,
-    state: t,
-    players: ledger.players.lookup(room).slice(0, Number(t.size)).map(toHex),
-    keys: ledger.playerKeys.lookup(room),
-    deck: ledger.decks.member(room) ? ledger.decks.lookup(room) : [],
-    owners: ledger.owners.member(room)
-      ? ledger.owners.lookup(room).map(Number)
-      : [],
-    custodians: ledger.custodians.member(room)
-      ? ledger.custodians.lookup(room).map(Number)
-      : [],
-    selected: ledger.lastSelections.member(room)
-      ? ledger.lastSelections.lookup(room)
-      : [],
-    history,
-    revision: JSON.stringify(t, (_, v) =>
-      typeof v === "bigint" ? v.toString() : v,
-    ),
-  };
+  const { ledger, blockHeight } = await fetchPublicLedger(address, network);
+  return projectTable(ledger, roomId, blockHeight);
 }
 function stateFor(
   session: Session,
