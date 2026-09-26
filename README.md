@@ -5,7 +5,7 @@
 
 **Cat Bluff Classic 52** uses one ordinary 52-card deck with a different cat image on every physical card. You know your own hand; everyone sees the required rank, the claims, and the growing face-down pile. Play your cards, decide whether to trust your friends, and call **BLUFF!** when the risk feels worth it.
 
-**Release status:** The Classic 52 contract is deployed on Midnight Preprod and the game is live at the main Cat Bluff URL. Local practice and the compiled-circuit test suite work. A complete two-wallet Preprod round has **not yet been verified**, so the short product trailer is not presented as a live multiplayer demo.
+**Release status:** The Classic 52 contract is deployed on Midnight Preprod and the game is live at the main Cat Bluff URL. Local practice and the compiled-circuit test suite work. The [published product video](https://youtu.be/Yt2Gqw4w_sw) shows the game, but a complete two-wallet Preprod round has **not yet been verified**.
 
 ![Cat Bluff clubhouse landing page](screenshots/clubhouse-home.png)
 
@@ -237,9 +237,9 @@ These show the real current UI in **local practice**. They do not depict a fabri
 
 ## Demo Video
 
-**Full gameplay demo URL:** _To be added after recording a complete two-wallet Classic 52 Preprod round._
+**Published Cat Bluff video:** [Watch “Cat Bluff Game” on YouTube](https://youtu.be/Yt2Gqw4w_sw).
 
-A [22-second product trailer](public/media/cat-bluff-launch.mp4) and [poster](public/media/cat-bluff-launch.jpg) are already available. The trailer shows local practice and the trust-or-BLUFF moment; **it is not proof of a completed live multiplayer round**. Music attribution is in [Media Credits](#media-credits).
+A [local copy of the 22-second product trailer](public/media/cat-bluff-launch.mp4) and [poster](public/media/cat-bluff-launch.jpg) are also available. The video shows local practice and the trust-or-BLUFF moment; **it is not proof of a completed live multiplayer round**. Music attribution is in [Media Credits](#media-credits).
 
 For the full demo, record: connect two Lace wallets → create and invite to a room → both players shuffle and share the deal → show each private hand separately → submit a face-down claim → trust or call BLUFF → reveal only that turn's cards → transfer the whole pile to the correct player → show a confirmed transaction receipt. Show the current test output and CI badge separately. If proofs take time, label any edited wait accurately and keep private keys and recovery material out of the recording.
 
@@ -270,8 +270,8 @@ README.md                    This guide
 | Tests | ✓ 107 local tests passed, 0 failed; [older test screenshot](screenshots/classic52-tests.png) shows 79 |
 | CI workflow and badge | ✓ [Workflow](.github/workflows/ci.yml) and `main` badge above |
 | Product X profile | ✓ [@catbluffgame](https://x.com/catbluffgame) |
-| Gameplay demo video | ✗ URL intentionally left open above; a practice-only trailer exists |
-| Minimum 15 meaningful commits | More than 15 commits in the repository history; reviewers should assess their substance |
+| Published game video | ✓ [Cat Bluff Game on YouTube](https://youtu.be/Yt2Gqw4w_sw); the 22-second video shows practice, while a full live multiplayer round remains unverified |
+| Minimum 15 meaningful commits | ✓ 62 commits in the repository history before this README update; reviewers should assess their substance |
 
 ## Media Credits
 
