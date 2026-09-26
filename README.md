@@ -199,6 +199,12 @@ Vercel builds the frontend with `npm run build:vercel`. V4 proving keys and ZKIR
 
 See [PROPOSAL.md](PROPOSAL.md) for product/users, Midnight rationale, data model and Mainnet scope. Approval of this revised card mechanic is not represented as granted.
 
+## Product Video
+
+[Watch the 22-second Cat Bluff launch video](public/media/cat-bluff-launch.mp4) · [Video poster](public/media/cat-bluff-launch.jpg). The video shows the actual local practice interface and the trust-or-BLUFF decision; it is a product trailer, not a completed Preprod wallet-game demonstration.
+
+Music: [“Happy Beats & Business Moves Vol. 12” by Sascha Ende](https://ende.app/en/song/12881-happy-beats-business-moves-vol-12), adapted under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 ## Demo Video
 
 The Classic 52 video is pending. Show connect → invite/join → shuffle/deal → face-down claim → Cat Chaos → BLUFF → opening/pile pickup, with a confirmed receipt and passing tests.
