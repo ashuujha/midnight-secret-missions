@@ -2,7 +2,7 @@ import { cp, mkdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const managed = resolve(root, 'managed', 'secret-trail');
+const managed = resolve(root, 'managed', 'cat-bluff');
 const publicDir = resolve(root, 'public');
 
 await mkdir(publicDir, { recursive: true });
@@ -14,4 +14,4 @@ for (const directory of ['keys', 'zkir']) {
   await cp(source, destination, { recursive: true });
 }
 
-console.log('Copied Secret Trail proving assets to public/keys and public/zkir.');
+console.log('Copied Cat Bluff proving assets to public/keys and public/zkir.');
