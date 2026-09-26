@@ -3,7 +3,7 @@
 
 > 52 meme cats. Four of every rank. Lie to your friends—or risk picking up the whole pile.
 
-**Classic 52 release status:** the new 2–4 player rules, joint private shuffle, practice table and V4 contract are implemented. Local compiled-circuit tests and the production build pass. **V4 still needs a new Lace deployment and a complete multiplayer Preprod playthrough.** The existing V3 deployment remains the earlier five-cat game; its address cannot run the new rules.
+**Classic 52 release status:** the new 2–4 player rules, joint private shuffle, practice table and V4 contract are implemented. **V4 is deployed on Preprod:** schema 4 and all ten verifier keys match this code. Ninety local tests and the production build pass. A complete multiplayer Preprod playthrough and production promotion remain pending. The existing V3 deployment remains the earlier five-cat game; its address cannot run the new rules.
 
 ![Classic 52 practice table](screenshots/classic52-table.png)
 
@@ -13,9 +13,11 @@
 
 [Current production site](https://cat-bluff-ashuu.vercel.app/) · [Public repository](https://github.com/ashuujha/midnight-secret-trail)
 
+[Classic 52 release preview](https://midnight-secret-missions-git-feature-classic-52-ashuujha.vercel.app) — may require Vercel sign-in while release validation is in progress.
+
 In the Classic 52 build, choose **Try a practice round**, pick 2, 3 or 4 players, then **Deal the cats**. You play against local bots. Practice needs no wallet and generates no proof.
 
-For live play after V4 deployment, choose **Play with friends**, connect Lace and create a room. Send **Invite friends** to 1–3 people. Each joins with their own wallet and browser. The host can start with **two, three or four players**. Invitations contain public room and contract IDs; they never include table keys or hands.
+For live play in the Classic 52 preview, choose **Play with friends**, connect Lace and create a room. Send **Invite friends** to 1–3 people. Each joins with their own wallet and browser. The host can start with **two, three or four players**. Invitations contain public room and contract IDs; they never include table keys or hands.
 
 Existing V3 invitation links still open the earlier five-cat table. The new lobby also includes **Open earlier five-cat tables**. No V3 contract or saved hand is migrated or overwritten.
 
@@ -23,10 +25,12 @@ Existing V3 invitation links still open the earlier five-cat table. The new lobb
 
 | Version | Network | Address / deployment status |
 | --- | --- | --- |
-| Classic 52 V4 | Preprod | Deployment pending: requires a new Lace signature. Set `VITE_CLASSIC_CONTRACT_ADDRESS` to its returned address. |
+| Classic 52 V4 | Preprod | [`616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946`](https://preprod.midnightexplorer.com/contracts/0x616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946) — schema 4; all ten circuit verifier keys checked |
 | Earlier Cat Bluff V3 | Preprod | [`3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e`](https://preprod.midnightexplorer.com/contracts/0x3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e) — schema 3 and seven circuit verifier keys checked; earlier five-cat rules |
 
 V4 has **schema 4 and ten public circuits**. The V3 address belongs only in `VITE_CAT_BLUFF_CONTRACT_ADDRESS`. A frontend deployment does not deploy a contract. Do not use an older Secret Trail address for either card game.
+
+The V4 deployment succeeded in Preprod block **2,715,402**, transaction hash `065011fb07056ea87e768428697ed0f5bd27cd6846b69e2f3fae77b380866591`. Its on-chain verifier keys match the compiled artifacts for `createRoom`, `joinRoom`, `startRound`, `shuffleDeck`, `shareDeal`, `playCards`, `passClaim`, `callBluff`, `revealTurn` and `transferPile`. Deployment verification does not substitute for a complete multiplayer game.
 
 ## What This Does
 
@@ -116,14 +120,14 @@ cat > .env.local <<'ENV'
 VITE_MIDNIGHT_NETWORK=preprod
 # Keep the earlier contract available for existing rooms:
 VITE_CAT_BLUFF_CONTRACT_ADDRESS=3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e
-# Fill this only after deploying V4 through Lace:
-VITE_CLASSIC_CONTRACT_ADDRESS=
+# Verified Classic 52 Preprod deployment:
+VITE_CLASSIC_CONTRACT_ADDRESS=616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946
 # Omit VITE_CLASSIC_PROOF_SERVER_URL to use Lace's configured prover.
 ENV
 npm run dev
 ```
 
-Open the Vite URL. **Try a practice round** gives an instant local game. To deploy V4, choose **Play with friends → Set up live play → Connect Lace → Deploy Classic 52 with Lace**. Approve in Lace. Copy the returned address into `VITE_CLASSIC_CONTRACT_ADDRESS` locally and in Vercel, then rebuild. Local development also remembers the deployment address in that browser. The earlier CLI deployment script still deploys V3; use the new browser action for V4.
+Open the Vite URL. **Try a practice round** gives an instant local game. With the address above, **Play with friends** connects to the existing V4 deployment; no new deployment is needed. For a separate V4 deployment, choose **Set up live play → Connect Lace → Deploy Classic 52 with Lace**. Approve in Lace. Copy the returned address into `VITE_CLASSIC_CONTRACT_ADDRESS` locally and in Vercel, then rebuild. Local development also remembers the deployment address in that browser. The earlier CLI deployment script still deploys V3; use the new browser action for V4.
 
 Live test sequence:
 
@@ -146,7 +150,7 @@ npm run typecheck:deploy
 npm run check
 ```
 
-[Test output screenshot](screenshots/classic52-tests.png) shows selected contract checks and the complete **79-passing-test** summary. Tests cover full 2/3/4-player joint deals, 52 unique physical cards, inability to decrypt another player's cards with one's own key, invalid permutations and openings, ownership, turn order, whole-pile pickup, private re-encryption, final claims and rematches. Practice simulations check conservation throughout long games and expose only each bot's own hand. Earlier V3 and trail regressions remain included.
+The current suite has **90 passing tests**. The earlier [test output screenshot](screenshots/classic52-tests.png) shows 79 tests before the additional wallet recovery and submission checks. Tests cover full 2/3/4-player joint deals, 52 unique physical cards, inability to decrypt another player's cards with one's own key, invalid permutations and openings, ownership, turn order, whole-pile pickup, private re-encryption, final claims and rematches. Practice simulations check conservation throughout long games and expose only each bot's own hand. Earlier V3 and trail regressions remain included.
 
 For an optional real local-prover benchmark, run a compatible proof server on port 6301, then:
 
@@ -182,7 +186,8 @@ A new Classic 52 video remains pending. Show two real profiles: connect, create/
 - ✓ Classic 52 contract compiles; local rule and compiled-circuit tests pass.
 - ✓ CI workflow and badge included; release checks must pass before promotion.
 - ✓ Existing V3 Preprod address retained for earlier rooms.
-- ✗ New V4 Preprod deployment/address and complete live multiplayer verification.
+- ✓ New V4 Preprod deployment/address; schema and all ten verifier keys checked on-chain.
+- ✗ Complete live multiplayer verification.
 - ✗ Verified Classic 52 production release.
 - ✗ Current game demo video.
 - ✗ Dedicated product X profile linked here.
