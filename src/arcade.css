@@ -587,8 +587,6 @@ nav {
   padding: 12px 18px;
   white-space: nowrap;
   min-width: 1000px;
-  transition: translate 0.3s ease-out;
-  will-change: transform;
 }
 .arcade-ticker span {
   font-family: Dela, sans-serif;
@@ -2478,7 +2476,9 @@ nav {
     --tilt-y: 0deg !important;
   }
 }
-:root[data-fx="off"] * {
+:root[data-fx="off"] *,
+:root[data-fx="off"] *::before,
+:root[data-fx="off"] *::after {
   animation: none !important;
   transition: none !important;
   scroll-behavior: auto !important;
