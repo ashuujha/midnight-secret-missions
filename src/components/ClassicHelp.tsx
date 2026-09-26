@@ -11,11 +11,12 @@ export function ClassicRules() {
           <strong>Play cards. Sell a story.</strong> Select one or more cards
           and place them face down. Your claim uses the required rank: “2
           Queens,” for example. The number is exact; the rank can be a lie.
+          The meme is the artwork; the rank is what you claim.
         </li>
         <li>
           <strong>Trust… or BLUFF!</strong> Opponents respond clockwise.
-          Everyone trusts? Cards stay in the pile. The next player claims the
-          next rank: A → 2 → … → K → A.
+          Everyone trusts? Cards stay in the pile. After each settled turn,
+          the next player claims the next rank: A → 2 → … → K → A.
         </li>
         <li>
           <strong>Risk the whole pile.</strong> A challenge reveals only that

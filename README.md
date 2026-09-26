@@ -1,7 +1,9 @@
 # Cat Bluff
-![CI](https://github.com/ashuujha/midnight-secret-trail/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/ashuujha/cat-bluff/actions/workflows/ci.yml/badge.svg)
 
 > 52 meme cats. Four of every rank. Lie to your friends—or risk picking up the whole pile.
+
+Cat Bluff is a **2–4 player cat-meme card game** built around private hands, public claims and calling a friend's bluff. The card rank determines the rules; the cat picture gives each card its personality. Midnight verifies legal moves and challenged plays while unchallenged cards stay face down.
 
 **Classic 52 release status:** the new 2–4 player rules, joint private shuffle, practice table and V4 contract are implemented. **V4 is deployed on Preprod:** schema 4 and all ten verifier keys match this code. Ninety-five local tests and the production build pass. A complete multiplayer Preprod playthrough and production promotion remain pending. The existing V3 deployment remains the earlier five-cat game; its address cannot run the new rules.
 
@@ -11,15 +13,17 @@
 
 ## Live Demo
 
-[Current production site](https://cat-bluff-ashuu.vercel.app/) · [Public repository](https://github.com/ashuujha/midnight-secret-trail)
+[Play Cat Bluff — earlier five-cat release](https://cat-bluff-ashuu.vercel.app/) · [Public repository](https://github.com/ashuujha/cat-bluff)
 
-[Classic 52 release preview](https://midnight-secret-missions-git-feature-classic-52-ashuujha.vercel.app) — may require Vercel sign-in while release validation is in progress.
+[Cat Bluff Classic 52 preview](https://cat-bluff-git-feature-classic-52-ashuujha.vercel.app) — may require Vercel sign-in while release validation is in progress.
 
 In the Classic 52 build, choose **Try a practice round**, pick 2, 3 or 4 players, then **Deal the cats**. You play against local bots. Practice needs no wallet and generates no proof.
 
 For live play in the Classic 52 preview, choose **Play with friends**, connect Lace and create a room. Send **Invite friends** to 1–3 people. Each joins with their own wallet and browser. The host can start with **two, three or four players**. Invitations contain public room and contract IDs; they never include table keys or hands.
 
 Existing V3 invitation links still open the earlier five-cat table. The new lobby also includes **Open earlier five-cat tables**. No V3 contract or saved hand is migrated or overwritten.
+
+The GitHub repository and Vercel project are both named **`cat-bluff`**. Existing site aliases stay available for ongoing games. Continue a private hand at the same site address and in the same browser where you joined; a new address does not carry over browser-local keys.
 
 ## Contract Address
 
@@ -28,11 +32,13 @@ Existing V3 invitation links still open the earlier five-cat table. The new lobb
 | Classic 52 V4 | Preprod | [`616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946`](https://preprod.midnightexplorer.com/contracts/0x616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946) — schema 4; all ten circuit verifier keys checked |
 | Earlier Cat Bluff V3 | Preprod | [`3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e`](https://preprod.midnightexplorer.com/contracts/0x3cc6418a04b9d1e6deab06e5711e4e3c3876e697ba412202f932ebe030bc917e) — schema 3 and seven circuit verifier keys checked; earlier five-cat rules |
 
-V4 has **schema 4 and ten public circuits**. The V3 address belongs only in `VITE_CAT_BLUFF_CONTRACT_ADDRESS`. A frontend deployment does not deploy a contract. Do not use an older Secret Trail address for either card game.
+V4 has **schema 4 and ten public circuits**. The V3 address belongs only in `VITE_CAT_BLUFF_CONTRACT_ADDRESS`. A frontend deployment does not deploy a contract. Each version needs its own address from the table above.
 
 The V4 deployment succeeded in Preprod block **2,715,402**, transaction hash `065011fb07056ea87e768428697ed0f5bd27cd6846b69e2f3fae77b380866591`. Its on-chain verifier keys match the compiled artifacts for `createRoom`, `joinRoom`, `startRound`, `shuffleDeck`, `shareDeal`, `playCards`, `passClaim`, `callBluff`, `revealTurn` and `transferPile`. Deployment verification does not substitute for a complete multiplayer game.
 
 ## What This Does
+
+### How to play Cat Bluff
 
 1. **Deal every cat.** A single 52-card deck contains 13 ranks and four physical copies of each. Each card has its own cat meme image. Two players get 26 each; three get 18/17/17; four get 13 each.
 2. **Play face down.** Select one or more cards. The required rank starts at Ace. Playing two cards declares “2 Aces.” The quantity is exact; the ranks may be a lie.
@@ -42,6 +48,8 @@ The V4 deployment succeeded in Preprod block **2,715,402**, transaction hash `06
 6. **Play again.** The host starts another round in the same room, with a fresh joint shuffle.
 
 There are no extra cards, replacement draws, stakes, coins, powers or artificial game timers. The growing pile supplies the risk. You can reason from your hand, the four-copy limit, opponents' hand counts and the public history. A passed claim is recorded as **trusted**, not as a proven lie or truth.
+
+**Example:** the required rank is Queen. You play two cards and claim “2 Queens.” Two Queens is honest; a Queen and a King is a bluff. If someone calls BLUFF, those two cards open and the losing side takes every card in the pile. Once the turn is settled, the next required rank is King. A random Cat Chaos reaction after the play gives no evidence about either card.
 
 ### Live shuffle and pickup
 
@@ -113,8 +121,8 @@ Only the local player's key is used to decrypt their hand in live UI state. Oppo
 ## Setup & Run Locally
 
 ```bash
-git clone https://github.com/ashuujha/midnight-secret-trail.git
-cd midnight-secret-trail
+git clone --branch feature/classic-52 https://github.com/ashuujha/cat-bluff.git
+cd cat-bluff
 npm ci
 compact update 0.31.1
 npm run compile
@@ -152,7 +160,7 @@ npm run typecheck:deploy
 npm run check
 ```
 
-The current suite has **95 passing tests**. The earlier [test output screenshot](screenshots/classic52-tests.png) shows 79 tests before the additional wallet recovery and submission checks. Tests cover full 2/3/4-player joint deals, 52 unique physical cards, inability to decrypt another player's cards with one's own key, invalid permutations and openings, ownership, turn order, whole-pile pickup, private re-encryption, final claims and rematches. Practice simulations check conservation throughout long games and expose only each bot's own hand. Earlier V3 and trail regressions remain included.
+The current suite has **95 passing tests**. The earlier [test output screenshot](screenshots/classic52-tests.png) shows 79 tests before the additional wallet recovery, submission and Cat Chaos checks. Tests cover full 2/3/4-player joint deals, 52 unique physical cards, inability to decrypt another player's cards with one's own key, invalid permutations and openings, ownership, turn order, whole-pile pickup, private re-encryption, final claims and rematches. Practice simulations check conservation throughout long games and expose only each bot's own hand. Earlier contract regression tests remain included.
 
 For an optional real local-prover benchmark, run a compatible proof server on port 6301, then:
 
@@ -180,7 +188,7 @@ See [PROPOSAL.md](PROPOSAL.md) for product/users, Midnight rationale, data model
 
 ## Demo Video
 
-A new Classic 52 video remains pending. Show two real profiles: connect, create/invite/join, private shuffle/deal, a face-down multi-card claim, BLUFF!, opening and whole-pile pickup. Include a real confirmed receipt, passing tests and the CI run. Do not substitute the earlier counter or route-game video for this game.
+A new Cat Bluff Classic 52 video remains pending. Show two real profiles: connect, create/invite/join, private shuffle/deal, a face-down multi-card claim, Cat Chaos, BLUFF!, opening and whole-pile pickup. Include a real confirmed receipt, passing tests and the CI run. The video must demonstrate this card game and its current rules.
 
 ## Submission Checklist
 

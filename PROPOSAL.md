@@ -6,7 +6,9 @@ Cat Bluff is a **Consumer & Social / Gaming** product for 2–4 friends who enjo
 
 Opponents may trust a claim or call BLUFF. A challenge opens only the latest play. If any card has the wrong rank, the bluffer picks up the entire central pile; an honest play makes the challenger pick it up. Unchallenged cards accumulate, increasing the cost of a mistaken challenge. The first empty hand wins only after its final claim is resolved. Memory, the four-copy limit, a player's remaining hand count and the size of the pile create the decisions; there are no stakes, tokens, XP, special powers or artificial delays.
 
-The app retains its existing React, Lace and Midnight integration, with an instant local practice mode and shareable live rooms. The revised V4 contract adds a joint private shuffle instead of a hosted dealer. The previously deployed V3 five-cat game remains separate and available to existing rooms. The card-game concept evolved from the approved secret-mission proposal; this document does not claim the revised mechanic has already received program approval.
+Cat Chaos adds a short random cat image, animation or sound after a play. It never reads the submitted card or rank, so a reaction is not evidence of truth or a bluff. This is presentation only: the actual cards and challenge result determine the outcome.
+
+The app uses React, Lace and Midnight, with instant local practice and shareable live rooms. The V4 contract provides a joint private shuffle without a hosted dealer. The previously deployed V3 five-cat game remains available to existing rooms. This proposal describes the current Cat Bluff Classic 52 product; program approval of the revised card mechanic has not been confirmed.
 
 ## Why Midnight specifically?
 
@@ -30,6 +32,7 @@ The claim has limits: ciphertext slot movements and counts are public; previousl
 | Shuffle permutation and re-randomization values | Private witness | Contributing player and selected prover |
 | Current private hand | Locally decrypted data | Its owner; deductions from previous public reveals remain possible |
 | Shuffle, deal, opening and pickup validity | Zero-knowledge proof | Verifiers learn validity and specified public outputs |
+| Cat Chaos reaction | Local presentation, sampled independently of cards | The current viewer; no card information or new ledger state |
 
 ## Mainnet Feasibility
 
