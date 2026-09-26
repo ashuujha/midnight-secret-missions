@@ -2081,3 +2081,131 @@ select:focus-visible,
   white-space: nowrap;
   min-height: 44px;
 }
+
+/* Reserve the selection controls so the hand stays still after the first tap. */
+.classic-playbar.play-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "summary submit" "selection selection";
+  gap: 9px 14px;
+  align-items: center;
+}
+.selection-summary {
+  grid-area: summary;
+  min-width: 0;
+  min-height: 48px;
+}
+.selection-summary strong,
+.selection-summary > span {
+  display: block;
+}
+.selection-summary > span {
+  color: var(--muted);
+  margin-top: 5px;
+  line-height: 1.4;
+}
+.submit-selection {
+  grid-area: submit;
+}
+.selection-review {
+  grid-area: selection;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: 46px;
+}
+.classic-playbar .selected-tray {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 6px;
+  width: auto;
+  min-width: 0;
+  height: 46px;
+  margin: 0;
+  padding: 1px 3px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.selected-card-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 48px;
+  height: 42px;
+  border: 1px solid #baaa8d;
+  border-radius: 7px;
+  background: var(--card);
+  color: var(--card-ink);
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.selected-tray .selected-card-chip span {
+  display: inline;
+  width: auto;
+  height: auto;
+  border: none;
+  background: none;
+  font-size: 15px;
+  font-weight: 400;
+}
+.selected-tray .selection-empty {
+  display: block;
+  width: auto;
+  height: auto;
+  background: none;
+  border: none;
+  font-weight: 400;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.clear-selection {
+  flex: none;
+  min-height: 44px;
+  font-size: 11px;
+  padding: 0 3px;
+}
+.clear-selection:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.hand-interaction-hint {
+  min-height: 36px;
+  margin: 0 0 5px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.hand-tools .inspect-toggle[aria-pressed="true"] {
+  color: var(--yellow);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (max-width: 580px) {
+  .classic-playbar.play-controls {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "summary" "selection" "submit";
+    gap: 8px;
+  }
+  .classic-playbar .selection-summary {
+    min-height: 48px;
+    min-width: 0;
+  }
+  .classic-playbar .selection-review {
+    width: 100%;
+  }
+  .classic-playbar .selected-tray {
+    flex: 1;
+  }
+  .classic-playbar .selected-card-chip {
+    font-size: 12px;
+  }
+  .hand-interaction-hint {
+    font-size: 11px;
+  }
+}

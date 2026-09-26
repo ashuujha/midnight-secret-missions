@@ -70,6 +70,7 @@ export function ClassicGame({
   const [sortHand, setSortHand] = useState<"rank" | "deal">("rank");
   const [expandedHand, setExpandedHand] = useState(false);
   const [inspected, setInspected] = useState<number | null>(null);
+  const [inspectMode, setInspectMode] = useState(false);
   const [showGuide, setShowGuide] = useState(
     () => localStorage.getItem("cat-bluff-guide") !== "done",
   );
@@ -137,6 +138,7 @@ export function ClassicGame({
     setSelected([]);
     setError("");
     setInspected(null);
+    setInspectMode(false);
   }, [view?.round, view?.latest?.number, view?.phase, online]);
   useEffect(() => {
     if (!busy) return;
@@ -1020,57 +1022,89 @@ export function ClassicGame({
                   >
                     {expandedHand ? "Compact hand" : "Expand hand"}
                   </button>
-                  {playing && selected.length > 0 && (
+                  {playing && (
                     <button
-                      className="text-button"
+                      className="text-button inspect-toggle"
+                      aria-pressed={inspectMode}
                       onClick={() => {
-                        setSelected([]);
+                        setInspectMode(!inspectMode);
                         setInspected(null);
                       }}
                     >
-                      Clear selection
+                      {inspectMode ? "Choose cards" : "Inspect cards"}
                     </button>
                   )}
                 </div>
               )}
               {playing && (
                 <div className="classic-playbar play-controls">
-                  <div>
+                  <div className="selection-summary" role="status">
                     <strong>
                       {selected.length
                         ? `${selected.length} selected · Claim: ${declaration(selected.length, view.rank)}`
-                        : "Select your cats."}
+                        : "Choose one or more cards"}
                     </strong>
                     <span>
-                      {selected.length
-                        ? "This is your public claim. Selected ranks stay hidden."
-                        : "Any rank can be played. The lie is yours to tell."}
+                      Required claim: {RANK_NAMES[view.rank]}s. You choose the
+                      actual cards.
                     </span>
                   </div>
-                  {selected.length > 0 && (
+                  <div className="selection-review">
                     <div
                       className="selected-tray"
-                      aria-label={`${selected.length} selected cards`}
+                      aria-label="Your selected cards, kept private"
                     >
-                      {selected.slice(0, 5).map((id) => (
-                        <span key={id}>
-                          {DECK[id].rank}
-                          {DECK[id].suit}
+                      {selected.length ? (
+                        selected.map((id) => (
+                          <button
+                            key={id}
+                            className="selected-card-chip"
+                            aria-label={`Remove ${DECK[id].rank} of ${DECK[id].suitName} from selection`}
+                            disabled={busy}
+                            onClick={() =>
+                              setSelected((cards) =>
+                                cards.filter((card) => card !== id),
+                              )
+                            }
+                          >
+                            {DECK[id].rank}
+                            {DECK[id].suit}
+                            <span aria-hidden="true">×</span>
+                          </button>
+                        ))
+                      ) : (
+                        <span className="selection-empty">
+                          Your picks will appear here.
                         </span>
-                      ))}
-                      {selected.length > 5 && (
-                        <span>+{selected.length - 5}</span>
                       )}
                     </div>
-                  )}
+                    <button
+                      className="text-button clear-selection"
+                      disabled={!selected.length || busy}
+                      onClick={() => setSelected([])}
+                    >
+                      Clear selection
+                    </button>
+                  </div>
                   <button
-                    className="button primary"
-                    disabled={!selected.length || busy}
-                    onClick={() => void act({ kind: "play", cards: selected })}
+                    className="button primary submit-selection"
+                    disabled={!selected.length || busy || inspectMode}
+                    onClick={() =>
+                      void act({ kind: "play", cards: [...selected] })
+                    }
                   >
                     Play {selected.length || ""} face down ↗
                   </button>
                 </div>
+              )}
+              {seat >= 0 && view.hand.length > 0 && (
+                <p className="hand-interaction-hint" id="hand-interaction-hint">
+                  {playing
+                    ? inspectMode
+                      ? "Preview mode: tap a cat to enlarge it. Choose cards to return to selecting."
+                      : "Tap any cards to select them. Tap again to undo. Swipe or expand to see more."
+                    : "Tap a cat to inspect it. You can select cards when it’s your turn."}
+                </p>
               )}
               {artError && (
                 <p role="alert">
@@ -1097,6 +1131,7 @@ export function ClassicGame({
                   className={`classic-hand-grid ${expandedHand ? "is-expanded" : ""}`}
                   role="region"
                   aria-label="Your private cards"
+                  aria-describedby="hand-interaction-hint"
                   tabIndex={0}
                 >
                   {[...view.hand]
@@ -1109,18 +1144,20 @@ export function ClassicGame({
                         aria-pressed={selected.includes(id)}
                         disabled={busy}
                         onClick={() => {
-                          setInspected(id);
-                          if (playing)
-                            setSelected((s) =>
-                              s.includes(id)
-                                ? s.filter((c) => c !== id)
-                                : [...s, id],
-                            );
+                          if (!playing || inspectMode) {
+                            setInspected(id);
+                            return;
+                          }
+                          setSelected((cards) =>
+                            cards.includes(id)
+                              ? cards.filter((card) => card !== id)
+                              : [...cards, id],
+                          );
                         }}
                       >
                         {card(id, true)}
-                        {playing && (
-                          <span className="selection-dot">
+                        {playing && !inspectMode && (
+                          <span className="selection-dot" aria-hidden="true">
                             {selected.includes(id) ? "✓" : "+"}
                           </span>
                         )}
