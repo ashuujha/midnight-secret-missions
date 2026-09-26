@@ -15,7 +15,7 @@ Cat Bluff is a **2–4 player cat-meme card game** built around private hands, p
 
 [Play Cat Bluff](https://cat-bluff-ashuu.vercel.app/) · [Public repository](https://github.com/ashuujha/cat-bluff) · [Product X: @catbluffgame](https://x.com/catbluffgame)
 
-[Cat Bluff Classic 52 preview](https://cat-bluff-git-feature-classic-52-ashuujha.vercel.app) — may require Vercel sign-in while release validation is in progress.
+[Play the public Classic 52 beta](https://cat-bluff-classic52-beta.vercel.app/) — a separate beta deployment; the main live game remains on its current version.
 
 ### Learn without a wallet
 
@@ -201,7 +201,7 @@ See [PROPOSAL.md](PROPOSAL.md) for product/users, Midnight rationale, data model
 
 ## Product Video
 
-[Watch the 22-second Cat Bluff launch video](public/media/cat-bluff-launch.mp4) · [Video poster](public/media/cat-bluff-launch.jpg). The video shows the actual local practice interface and the trust-or-BLUFF decision; it is a product trailer, not a completed Preprod wallet-game demonstration.
+[Watch the 22-second Cat Bluff launch video](https://cat-bluff-classic52-beta.vercel.app/media/cat-bluff-launch.mp4) · [Video poster](https://cat-bluff-classic52-beta.vercel.app/media/cat-bluff-launch.jpg). The video shows the actual local practice interface and the trust-or-BLUFF decision; it is a product trailer, not a completed Preprod wallet-game demonstration.
 
 Music: [“Happy Beats & Business Moves Vol. 12” by Sascha Ende](https://ende.app/en/song/12881-happy-beats-business-moves-vol-12), adapted under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
