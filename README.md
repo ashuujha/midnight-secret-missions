@@ -1,7 +1,7 @@
 # Cat Bluff
 ![CI](https://github.com/ashuujha/midnight-secret-trail/actions/workflows/ci.yml/badge.svg)
 
-> Cute faces. Terrible liars. A private cat-card bluffing game for 2–4 friends on Midnight.
+> Good cats. Bad alibis. A private cat-card bluffing game for 2–4 friends on Midnight.
 
 **Release status:** [Cat Bluff is live on Vercel](https://cat-bluff-ashuu.vercel.app/) with its new Midnight Preprod contract. Schema 3, all seven circuit entrypoints, and their verifier keys were checked against this build through the public indexer. Local practice and compiled-circuit tests pass; a complete two-wallet game still needs live verification.
 
@@ -40,9 +40,11 @@ Live response and proof windows last 20 minutes to allow for prover, wallet and 
 
 ### Interface and performance
 
-The welcome screen teaches three steps before showing the table. The guided practice deal uses one of each cat to teach the rules; subsequent unguided practice and live deals use browser randomness. Cards animate from your hand onto the table. Theme and optional meme sounds persist locally; sounds start off, and reduced-motion preferences are respected.
+The cat arcade uses crisp white, electric blue, candy pink and yellow, with a coordinated purple night theme. Dela Gothic One headlines and Fredoka controls are self-hosted. Meet the five suspects, learn three rules, then try an instant guided hand. The first practice deal uses one of each cat; subsequent unguided practice and live deals use browser randomness. Cards animate from your hand onto the table.
 
-Actual cat meme images and short recorded Huh, Fahh and Pop sounds are served locally. [Media sources and credits](public/media-credits.json) identify their origins; third-party media is not covered by this repository's code licence.
+Clicking controls triggers brief, varied cat reactions; game actions use specific reactions for a challenge, honest claim or caught bluff. The **DAY CAT / 3AM CAT** switch changes theme, **YAP** mutes sound, and **FX** pauses decorative animation. These choices persist locally. Sound is enabled for new visitors but plays only after interaction; previously saved mute choices remain respected. Reduced-motion settings disable animation. Cursor effects use event-driven frames, click paws are capped, and only one reaction and audio clip can play at a time.
+
+Actual cat meme photos, including OIIA and Smudge, and short recorded Huh, Fahh, Pop, OIIA, meow and Happy reactions are served locally. No generated meme images or synthesized sound imitations are used. [Media sources and credits](public/media-credits.json) identify their origins; third-party media is not covered by this repository's code licence.
 
 The initial page and practice game do not load the Midnight proving runtime. Live play prefetches the next circuit's assets, caches them across moves, and warms the configured hosted prover before submission. Wallet configuration and shielded-address reads run concurrently. Starting the game is combined with the first play; pending penalty draws are absorbed into the next play rather than requiring a separate transaction. Challenge resolution and penalties also happen in one circuit call.
 

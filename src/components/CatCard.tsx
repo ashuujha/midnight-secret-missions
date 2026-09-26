@@ -21,7 +21,7 @@ export function CatCard({
             <br />
             BLUFF
           </span>
-          <span className="back-eyes">( =^･ω･^= )</span>
+          <img className="back-meme" src="/memes/polite.jpg" alt="" />
           <span className="back-caption">trust issues inside</span>
         </span>
       </span>
