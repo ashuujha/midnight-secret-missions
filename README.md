@@ -13,7 +13,7 @@ Cat Bluff is a **2–4 player cat-meme card game** built around private hands, p
 
 ## Live Demo
 
-[Play Cat Bluff](https://cat-bluff-ashuu.vercel.app/) · [Public repository](https://github.com/ashuujha/cat-bluff)
+[Play Cat Bluff](https://cat-bluff-ashuu.vercel.app/) · [Public repository](https://github.com/ashuujha/cat-bluff) · [Product X: @catbluffgame](https://x.com/catbluffgame)
 
 [Cat Bluff Classic 52 preview](https://cat-bluff-git-feature-classic-52-ashuujha.vercel.app) — may require Vercel sign-in while release validation is in progress.
 
@@ -212,7 +212,7 @@ The Classic 52 video is pending. Show connect → invite/join → shuffle/deal �
 - ✓ More than 15 meaningful commits.
 - ✗ Complete live multiplayer verification with separate wallets.
 - ✗ Current game demo video.
-- ✗ Dedicated product X profile linked here.
+- ✓ [Dedicated product X profile: @catbluffgame](https://x.com/catbluffgame) linked in this README.
 
 ## Media Credits
 
