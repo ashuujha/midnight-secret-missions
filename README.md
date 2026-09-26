@@ -3,7 +3,7 @@
 
 > Cute faces. Terrible liars. A private cat-card bluffing game for 2–4 friends on Midnight.
 
-**Release status:** Cat Bluff’s new contract is deployed on Midnight Preprod. Its schema version and all seven circuit entrypoints were verified through the public indexer. Local practice and compiled-circuit tests pass; a complete two-wallet game still needs live verification.
+**Release status:** [Cat Bluff is live on Vercel](https://cat-bluff-ashuu.vercel.app/) with its new Midnight Preprod contract. Schema 3, all seven circuit entrypoints, and their verifier keys were checked against this build through the public indexer. Local practice and compiled-circuit tests pass; a complete two-wallet game still needs live verification.
 
 ![Cat Bluff welcome screen](screenshots/cat-bluff-home.png)
 
@@ -11,9 +11,9 @@
 
 ## Live Demo
 
-[Current production site](https://midnight-secret-trail.vercel.app/) — the previous Secret Trail release. The Cat Bluff preview URL will be added after deployment.
+[Play Cat Bluff](https://cat-bluff-ashuu.vercel.app/). The [earlier site URL](https://midnight-secret-trail.vercel.app/) also serves Cat Bluff. Keep using the same browser and site address for an existing private hand.
 
-Run this branch locally and choose **Learn with Miso** for an instant guided game. Miso is a practice bot; results are checked locally, with no wallet, ZK proof or transaction.
+Choose **Learn with Miso** for an instant guided game. Miso is a practice bot; results are checked locally, with no wallet, ZK proof or transaction.
 
 For live play, create a table, copy **Invite friends**, and send the link to 1–3 players. Each connects Lace and joins before the host plays the first card. The link contains only the public table and contract IDs. Live tables poll confirmed ledger state every four seconds; invitations do not create fake players.
 
@@ -133,7 +133,7 @@ Browser checks cover the guided honest play, a bluff, bot responses, theme/sound
 
 ## CI/CD
 
-[The workflow](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the pinned Compact compiler, runs `npm ci`, compiles Cat Bluff, runs the tests, builds the production app and typechecks the deployment CLI. The badge above tracks `main`; a feature-branch PR run is separate.
+[The workflow](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and the pinned Compact compiler, runs `npm ci`, compiles Cat Bluff, runs the tests, builds the production app and typechecks the deployment CLI. The badge above tracks `main`. [The Cat Bluff release PR passed CI](https://github.com/ashuujha/midnight-secret-trail/actions/runs/36214844178) before [PR #2 was merged](https://github.com/ashuujha/midnight-secret-trail/pull/2).
 
 Vercel builds the static app with `npm run build`. Set the new contract environment variable before promoting Cat Bluff to production. A frontend deployment does not deploy a Midnight contract or prove that wallet play works.
 
@@ -152,7 +152,8 @@ Record a new Cat Bluff demo after deployment: connect two wallets; create/invite
 - ✓ CI workflow and badge present.
 - ✓ Cat Bluff Preprod address; schema and circuit entrypoints verified.
 - ✗ Full two-wallet live playthrough.
-- ✗ Cat Bluff production release and current game video.
+- ✓ Cat Bluff production release and browser smoke checks.
+- ✗ Current Cat Bluff game video.
 - ✗ Dedicated product X profile linked in this README.
 - ✓ Repository already contains at least 15 meaningful commits; no artificial commit padding.
 
