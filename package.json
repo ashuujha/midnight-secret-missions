@@ -1,9 +1,9 @@
 {
-  "name": "midnight-secret-trail",
+  "name": "cat-bluff",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A multiplayer Midnight game of public trails, private missions, and provable challenges.",
+  "description": "A private cat-card bluffing game on Midnight.",
   "scripts": {
     "dev": "vite",
     "predev": "node scripts/copy-zk-assets.mjs",
@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "typecheck:deploy": "tsc --noEmit -p tsconfig.deploy.json",
-    "compile": "compact compile contracts/secret-trail.compact managed/secret-trail",
+    "compile": "compact compile contracts/cat-bluff.compact managed/cat-bluff",
     "test": "tsx --test tests/*.test.ts",
     "check": "npm run compile && npm test && npm run build && npm run typecheck:deploy",
     "deploy:preprod": "tsx deploy/deploy.ts --network preprod",

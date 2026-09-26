@@ -1,8 +1,8 @@
 import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-config-provider';
 import type { ProverKey, VerifierKey, ZKConfig, ZKIR } from '@midnight-ntwrk/midnight-js-types';
 
-// The same circuit is used for every visit. Keep its downloaded key material in
-// memory so the four later visits do not fetch and decode it again.
+// Repeated card actions reuse their circuit material. Cache both completed
+// downloads and in-flight prefetches; failed requests remain retryable.
 export class CachedZkConfigProvider<K extends string> extends FetchZkConfigProvider<K> {
   private readonly proverKeys = new Map<K, Promise<ProverKey>>();
   private readonly verifierKeys = new Map<K, Promise<VerifierKey>>();

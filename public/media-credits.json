@@ -1,0 +1,15 @@
+{
+  "note": "Third-party meme images and recordings retain their original rights. Source attribution is not a claim that these assets are MIT licensed. Files are self-hosted; no tracking embeds are used.",
+  "images": [
+    {"file":"memes/pop.png","name":"Pop Cat","source":"https://popcat.click/img/op.353767c3.png","page":"https://popcat.click/"},
+    {"file":"memes/huh.jpg","name":"Huh Cat","source":"https://i.imgflip.com/8338y8.jpg","page":"https://imgflip.com/memetemplate/488919824/Huh-cat"},
+    {"file":"memes/polite.jpg","name":"Polite Cat","source":"https://i.imgflip.com/2dq3nf.jpg","page":"https://imgflip.com/memetemplate/143710066/Polite-Cat"},
+    {"file":"memes/banana.png","name":"Banana Cat","source":"https://i.imgflip.com/6t4t9w.png","page":"https://imgflip.com/memetemplate/411730484"},
+    {"file":"memes/crying.png","name":"Crying Cat thumbs up","source":"https://i.imgflip.com/773c51.png","page":"https://imgflip.com/memetemplate/435176245"}
+  ],
+  "sounds": [
+    {"file":"sounds/huh.mp3","name":"Huh Cat","source":"https://storage.soundinstants.com/huh-cat.mp3","page":"https://instantsmeme.com/sound/huh-cat","edit":"One short reaction, silence trimmed and loudness reduced."},
+    {"file":"sounds/fahh.mp3","name":"Fahh reaction","source":"https://raw.githubusercontent.com/Space-Enterprise-at-Berkeley/godashboard/06a5fc1dda8b96f7c8a61fa492789f99c66ed071/resources/sounds/fahhh.mp3","page":"https://www.myinstants.com/en/instant/fahhh-42300/"},
+    {"file":"sounds/pop.mp3","name":"Pop Cat pop","source":"https://popcat.click/pops/pop1.mp3","page":"https://popcat.click/"}
+  ]
+}
