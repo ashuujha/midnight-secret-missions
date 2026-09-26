@@ -41,10 +41,13 @@ export default function App() {
   const [selected, setSelected] = useState<number | null>(null);
   const [claim, setClaim] = useState(0);
   const [theme, setTheme] = useState(
-    () => localStorage.getItem("cat-bluff-theme") || "light",
+    () => localStorage.getItem("cat-bluff-theme") || "dark",
   );
   const [sound, setSound] = useState(
     () => localStorage.getItem("cat-bluff-sound") !== "off",
+  );
+  const [gameSound, setGameSound] = useState(
+    () => localStorage.getItem("cat-bluff-game-sound") !== "off",
   );
   const [motion, setMotion] = useState(
     () => localStorage.getItem("cat-bluff-motion") !== "off",
@@ -102,12 +105,15 @@ export default function App() {
     localStorage.setItem("cat-bluff-theme", theme);
     document
       .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", theme === "dark" ? "#141126" : "#ffffff");
+      ?.setAttribute("content", theme === "dark" ? "#201b2c" : "#fff5dc");
   }, [theme]);
   useEffect(() => {
     localStorage.setItem("cat-bluff-sound", sound ? "on" : "off");
     if (!sound) stopSound();
   }, [sound]);
+  useEffect(() => {
+    localStorage.setItem("cat-bluff-game-sound", gameSound ? "on" : "off");
+  }, [gameSound]);
   useEffect(() => {
     document.documentElement.dataset.fx = motion ? "on" : "off";
     localStorage.setItem("cat-bluff-motion", motion ? "on" : "off");
@@ -137,13 +143,11 @@ export default function App() {
   useEffect(() => {
     if (mode !== "practice" || practice.table.status === 2) return;
     const t = practice.table;
-    if (
-      !(
-        (t.phase === 0 && t.turn === 1) ||
-        (t.phase === 1 && t.responder === 1) ||
-        (t.phase === 2 && t.actor === "miso")
-      )
-    )
+    if (!(
+      (t.phase === 0 && t.turn === 1) ||
+      (t.phase === 1 && t.responder === 1) ||
+      (t.phase === 2 && t.actor === "miso")
+    ))
       return;
     const timer = setTimeout(
       () =>
@@ -304,7 +308,7 @@ export default function App() {
   }
   return (
     <div className={`app mode-${mode}`}>
-      <CatAtmosphere sound={sound} motion={motion} mode={mode} />
+      <CatAtmosphere motion={motion} mode={mode} />
       <header className="topbar">
         <button
           className="wordmark"
@@ -312,7 +316,10 @@ export default function App() {
           onClick={() => setMode("home")}
           aria-label="Cat Bluff home"
         >
-          <img src="/memes/pop.png" alt="" />
+          <span className="wordmark-eyes" aria-hidden="true">
+            <i />
+            <i />
+          </span>
           cat bluff<span className="wordmark-dot">.</span>
         </button>
         <nav aria-label="Game controls">
@@ -322,9 +329,11 @@ export default function App() {
           <CatControls
             theme={theme}
             sound={sound}
+            gameSound={gameSound}
             motion={motion}
             onTheme={() => setTheme(theme === "light" ? "dark" : "light")}
             onSound={() => setSound(!sound)}
+            onGameSound={() => setGameSound(!gameSound)}
             onMotion={() => setMotion(!motion)}
           />
         </nav>
@@ -342,8 +351,10 @@ export default function App() {
             key={mode}
             online={mode === "classic-live"}
             sound={sound}
+            gameSound={gameSound}
             onHome={() => setMode("home")}
             onFriends={() => setMode("classic-live")}
+            onPractice={() => setMode("classic-practice")}
             onLegacy={() => setMode("live")}
           />
         ) : (
@@ -856,8 +867,8 @@ export default function App() {
                 </li>
               </ol>
               <p className="notice">
-                This earlier five-cat version uses a draw-two penalty. Live turns need a Midnight transaction. Practice is
-                instant.
+                This earlier five-cat version uses a draw-two penalty. Live
+                turns need a Midnight transaction. Practice is instant.
               </p>
               <button
                 className="button primary"

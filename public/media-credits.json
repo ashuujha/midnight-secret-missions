@@ -101,6 +101,12 @@
       "file": "fonts/fredoka-latin.woff2",
       "source": "https://fonts.google.com/specimen/Fredoka",
       "license": "fonts/Fredoka-OFL.txt"
+    },
+    {
+      "name": "DM Sans",
+      "file": "fonts/dm-sans-latin.woff2",
+      "source": "https://fonts.google.com/specimen/DM+Sans",
+      "license": "fonts/DM-Sans-OFL.txt"
     }
   ],
   "classic52Deck": {

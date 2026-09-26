@@ -7,9 +7,9 @@ Cat Bluff is a **2–4 player cat-meme card game** built around private hands, p
 
 **Release status:** Classic 52 is deployed on Preprod and available in preview. A complete multiplayer Preprod playthrough and production promotion remain pending; production currently serves the earlier five-cat game. Capacity changes described below require the next frontend deployment.
 
-![Classic 52 practice table](screenshots/classic52-table.png)
+![Cat Bluff Classic 52 practice table](screenshots/classic52-table.png)
 
-[Mobile](screenshots/classic52-mobile.png) · [Dark theme](screenshots/classic52-dark.png). Screenshots show local practice, not blockchain transactions.
+[Mobile table](screenshots/classic52-mobile.png) · [Dark clubhouse](screenshots/classic52-dark.png). Screenshots show local practice, not blockchain transactions.
 
 ## Live Demo
 
@@ -17,9 +17,9 @@ Cat Bluff is a **2–4 player cat-meme card game** built around private hands, p
 
 [Cat Bluff Classic 52 preview](https://cat-bluff-git-feature-classic-52-ashuujha.vercel.app) — may require Vercel sign-in while release validation is in progress.
 
-In the Classic 52 build, choose **Try a practice round**, pick 2, 3 or 4 players, then **Deal the cats**. You play against local bots. Practice needs no wallet and generates no proof.
+Choose **Learn in one hand** for a skippable practice round against 1–3 local bots. Pick 2, 3 or 4 players, then **Deal the cats**. The guide explains the required rank, face-down plays, both challenge outcomes and random Cat Chaos reactions beside the table. Practice needs no wallet and generates no proof.
 
-For live play in the Classic 52 preview, choose **Play with friends**, connect Lace and create a room. Send **Invite friends** to 1–3 people. Each joins with their own wallet and browser. The host can start with **two, three or four players**. Invitations contain public room and contract IDs; they never include table keys or hands.
+For live play in the Classic 52 preview, choose **Create room**, connect Lace and create a table. Copy the invite link from the lobby and send it to 1–3 people. Friends can open the link or paste it under **Join room**. Each joins with their own wallet and browser. The host can start with **two, three or four players**. Invitations contain public room and contract IDs; they never include table keys or hands.
 
 Existing V3 invitation links still open the earlier five-cat table. The new lobby also includes **Open earlier five-cat tables**. No V3 contract or saved hand is migrated or overwritten.
 
@@ -57,7 +57,7 @@ Setup requires a shuffle and a deal-share transaction from each player. On a cha
 
 Each new face-down play triggers a **random 1.2-second cat reaction**. Selection reads no cards, ranks or truthfulness; matching memes are coincidences. Reactions are local to each viewer, may repeat, respect mute/reduced-motion settings and never delay BLUFF or change a transaction.
 
-The UI shows your hand, opponents' counts, the required rank, pile size and public history. All 52 card faces download together as one catalog, so image requests do not identify your private cards. Real cat meme images and recorded reactions are self-hosted with light/dark, mute and motion controls.
+The table shows your hand, opponents' counts, the required rank, latest claim, pile size and public history. Sort or expand your hand, tap a card to inspect it, and clear a selection before submitting. All 52 card faces download together as one catalog, so image requests do not identify your private cards. Settings remember separate switches for original game cues, meme sounds, motion and the light/dark clubhouse theme.
 
 Practice needs no proving runtime. Live play caches and prefetches circuit assets, and shows actual proof, wallet, submission and confirmation stages. Proof generation and confirmation still take time; full live latency is not yet measured. Large shuffle/deal proofs need more prover memory than ordinary plays.
 
@@ -116,7 +116,7 @@ ENV
 npm run dev
 ```
 
-Open the Vite URL. **Try a practice round** gives an instant local game. With the address above, **Play with friends** connects to the existing V4 deployment; no new deployment is needed. For a separate V4 deployment, choose **Set up live play → Connect Lace → Deploy Classic 52 with Lace**. Approve in Lace. Copy the returned address into `VITE_CLASSIC_CONTRACT_ADDRESS` locally and in Vercel, then rebuild. Local development also remembers the deployment address in that browser. The earlier CLI deployment script still deploys V3; use the new browser action for V4.
+Open the Vite URL. **Learn in one hand** gives an instant local game. With the address above, **Create room** connects to the existing V4 deployment; no new deployment is needed. For a separate V4 deployment, choose **Set up live play → Connect Lace → Deploy Classic 52 with Lace**. Approve in Lace. Copy the returned address into `VITE_CLASSIC_CONTRACT_ADDRESS` locally and in Vercel, then rebuild. Local development also remembers the deployment address in that browser. The earlier CLI deployment script still deploys V3; use the new browser action for V4.
 
 Live test sequence:
 
@@ -187,4 +187,4 @@ The Classic 52 video is pending. Show connect → invite/join → shuffle/deal �
 
 ## Media Credits
 
-[All image, recording and font sources](public/media-credits.json). Third-party media retains its original rights and is not licensed under the repository's code licence. Self-hosted fonts include their licence files in `public/fonts/`.
+[All image, recording and font sources](public/media-credits.json). Third-party meme media retains its original rights and is not licensed under the repository's code licence; permissions need review before a broader commercial release. Game cues are synthesized in the browser. Self-hosted fonts include their licence files in `public/fonts/`.

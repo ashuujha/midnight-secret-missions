@@ -30,8 +30,11 @@ export function CatCard({
             <br />
             BLUFF
           </span>
-          <img className="back-meme" src="/memes/polite.jpg" alt="" />
-          <span className="back-caption">trust issues inside</span>
+          <span className="back-eyes" aria-hidden="true">
+            <i />
+            <i />
+          </span>
+          <span className="back-caption">trust nobody</span>
         </span>
       </span>
     );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { CatCard } from "./CatCard";
 import { Dialog } from "./Dialog";
 import { ClassicPrivacy, ClassicRules } from "./ClassicHelp";
@@ -17,7 +17,7 @@ import {
   type TurnRecord,
 } from "../game/classic-rules";
 import { classicInvite } from "../game/classic-invite";
-import { playSound } from "../game/sound";
+import { playGameCue, playMeme, reactMeme } from "../game/sound";
 import { useClassic52 } from "../hooks/useClassic52";
 import { useCatChaos } from "../hooks/useCatChaos";
 import type { Action } from "../midnight/classic52";
@@ -31,15 +31,19 @@ const stages = {
 export function ClassicGame({
   online,
   sound,
+  gameSound,
   onHome,
   onFriends,
+  onPractice,
   onLegacy,
   onBusy,
 }: {
   online: boolean;
   sound: boolean;
+  gameSound: boolean;
   onHome: () => void;
   onFriends: () => void;
+  onPractice: () => void;
   onLegacy: () => void;
   onBusy: (busy: boolean) => void;
 }) {
@@ -51,6 +55,12 @@ export function ClassicGame({
     [error, setError] = useState(""),
     [art, setArt] = useState<DeckArt | null>(null),
     [artError, setArtError] = useState("");
+  const [sortHand, setSortHand] = useState<"rank" | "deal">("rank");
+  const [expandedHand, setExpandedHand] = useState(false);
+  const [inspected, setInspected] = useState<number | null>(null);
+  const [showGuide, setShowGuide] = useState(
+    () => localStorage.getItem("cat-bluff-guide") !== "done",
+  );
   const [modal, setModal] = useState<"rules" | "privacy" | "invite" | null>(
       null,
     ),
@@ -58,9 +68,11 @@ export function ClassicGame({
     [elapsed, setElapsed] = useState(0);
   const view = online ? live.view : practice;
   useCatChaos({
-    scope: online ? `classic:${live.contract}:${live.room}` : "classic-practice",
+    scope: online
+      ? `classic:${live.contract}:${live.room}`
+      : "classic-practice",
     round: view?.round,
-    play: view ? view.latest?.number ?? 0 : undefined,
+    play: view ? (view.latest?.number ?? 0) : undefined,
     pending: view?.phase === "respond",
     sound,
   });
@@ -107,6 +119,7 @@ export function ClassicGame({
   useEffect(() => {
     setSelected([]);
     setError("");
+    setInspected(null);
   }, [view?.round, view?.latest?.number, view?.phase, online]);
   useEffect(() => {
     if (!busy) return;
@@ -122,20 +135,106 @@ export function ClassicGame({
     const key = `${view.round}:${r.number}:${r.outcome}`;
     if (lastOutcome.current === key) return;
     lastOutcome.current = key;
-    if (r.outcome === "bluff") playSound("caught", sound);
-    else if (r.outcome === "truth") playSound("truth", sound);
-  }, [view?.round, view?.latest?.number, view?.latest?.outcome, sound]);
+    if (r.outcome === "bluff" || r.outcome === "truth") {
+      playGameCue("penalty", gameSound);
+      const reaction = r.outcome === "bluff" ? "crying" : "polite";
+      reactMeme(
+        reaction,
+        false,
+        r.outcome === "bluff"
+          ? "Caught. The pile is yours."
+          : "The claim was true. Oops.",
+        1100,
+      );
+      if (sound)
+        setTimeout(() => {
+          if (localStorage.getItem("cat-bluff-sound") !== "off")
+            playMeme(reaction, 750);
+        }, 300);
+    }
+  }, [
+    view?.round,
+    view?.latest?.number,
+    view?.latest?.outcome,
+    gameSound,
+    sound,
+  ]);
+  const lastWin = useRef("");
+  useEffect(() => {
+    if (view?.phase !== "finished") return;
+    const key = `${view.round}:${view.winner}`;
+    if (lastWin.current === key) return;
+    lastWin.current = key;
+    playGameCue("victory", gameSound);
+  }, [view?.phase, view?.round, view?.winner, gameSound]);
+  const lastTurn = useRef("");
+  useEffect(() => {
+    if (!view || view.phase !== "play" || view.turn !== seat) return;
+    const key = `${view.round}:${view.latest?.number ?? 0}`;
+    if (lastTurn.current === key) return;
+    lastTurn.current = key;
+    playGameCue("turn", gameSound);
+  }, [
+    view?.round,
+    view?.phase,
+    view?.turn,
+    view?.latest?.number,
+    seat,
+    gameSound,
+  ]);
   function deal() {
     engine.current = newClassicState(players, (engine.current?.round ?? 0) + 1);
     setPractice(classicView(engine.current));
     setSelected([]);
     setError("");
-    playSound("place", sound);
+    playGameCue("flick", gameSound);
   }
   function local(seat: number, action: ClassicAction) {
     if (!engine.current) return;
     engine.current = applyClassic(engine.current, seat, action);
     setPractice(classicView(engine.current));
+  }
+  function animateSubmission() {
+    if (
+      document.documentElement.dataset.fx === "off" ||
+      matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
+    const source = document.querySelector<HTMLElement>(
+      ".classic-hand-card.is-selected",
+    );
+    const target = document.querySelector<HTMLElement>(
+      ".classic-pile .pile-cards",
+    );
+    if (!source || !target) return;
+    const from = source.getBoundingClientRect();
+    const to = target.getBoundingClientRect();
+    const card = document.createElement("span");
+    card.className = "flying-cat-back";
+    card.setAttribute("aria-hidden", "true");
+    card.textContent = "CAT BLUFF";
+    Object.assign(card.style, {
+      left: `${from.left}px`,
+      top: `${from.top}px`,
+      width: `${from.width}px`,
+      height: `${from.height}px`,
+    });
+    document.body.append(card);
+    card
+      .animate(
+        [
+          { transform: "translate(0,0) rotate(-4deg) scale(1)", opacity: 1 },
+          {
+            transform: `translate(${to.left + to.width / 2 - from.left - from.width / 2}px,${to.top + to.height / 2 - from.top - from.height / 2}px) rotate(7deg) scale(.8)`,
+            opacity: 0.8,
+          },
+        ],
+        { duration: 420, easing: "cubic-bezier(.2,.7,.2,1)" },
+      )
+      .finished.then(
+        () => card.remove(),
+        () => card.remove(),
+      );
   }
   useEffect(() => {
     if (online || !practice || practice.phase === "finished") return;
@@ -163,7 +262,12 @@ export function ClassicGame({
   }, [practice, online]);
   async function act(action: Action) {
     setError("");
-    if (action.kind === "call") playSound("challenge", sound);
+    if (action.kind === "call") playGameCue("bluff", gameSound);
+    if (action.kind === "play") {
+      animateSubmission();
+      playGameCue("flick", gameSound);
+    }
+    if (action.kind === "reveal") playGameCue("reveal", gameSound);
     if (online) {
       if (await live.act(action)) setSelected([]);
     } else {
@@ -356,6 +460,9 @@ export function ClassicGame({
             friends a seat.
           </h1>
           <p>Create a room. Send the invite. Start with 2–4 players.</p>
+          <button className="text-button learn-link" onClick={onPractice}>
+            Learn in one hand · no wallet needed ↗
+          </button>
           {live.wallet.status !== "connected" ? (
             connect
           ) : live.contract ? (
@@ -430,31 +537,52 @@ export function ClassicGame({
                 ? "Shuffle. Don’t peek."
                 : "Your private deal."}
           </h1>
+          <div className="lobby-room-code">
+            <span>PRIVATE ROOM</span>
+            <strong>{live.room.slice(0, 8).toUpperCase()}</strong>
+            <button
+              className="button secondary"
+              onClick={() => setModal("invite")}
+            >
+              Copy invite link ↗
+            </button>
+          </div>
           <div className="classic-seats">
-            {view.players.map((p, i) => (
-              <div
-                key={p.id}
-                className={
-                  Number(live.snapshot!.state.step) === i && status > 0
-                    ? "seat active"
-                    : "seat"
-                }
-              >
-                <img
-                  src={
-                    [
-                      "/memes/polite.jpg",
-                      "/memes/huh.jpg",
-                      "/memes/pop.png",
-                      "/memes/crying.png",
-                    ][i]
-                  }
-                  alt=""
-                />
-                <strong>{p.name}</strong>
-                <small>{i === 0 ? "Host" : "Ready"}</small>
-              </div>
-            ))}
+            {Array.from({ length: 4 }, (_, i) => view.players[i] ?? null).map(
+              (p, i) =>
+                p ? (
+                  <div
+                    key={p.id}
+                    className={
+                      Number(live.snapshot!.state.step) === i && status > 0
+                        ? "seat active"
+                        : "seat"
+                    }
+                  >
+                    <img
+                      src={
+                        [
+                          "/memes/polite.jpg",
+                          "/memes/huh.jpg",
+                          "/memes/pop.png",
+                          "/memes/crying.png",
+                        ][i]
+                      }
+                      alt=""
+                    />
+                    <strong>{p.name}</strong>
+                    <small>{i === 0 ? "Host" : "Ready"}</small>
+                  </div>
+                ) : (
+                  <button
+                    className="seat empty-seat"
+                    key={`empty-${i}`}
+                    onClick={() => setModal("invite")}
+                  >
+                    + Invite a friend <small>Seat {i + 1}</small>
+                  </button>
+                ),
+            )}
           </div>
           {status === 0 ? (
             <>
@@ -543,10 +671,48 @@ export function ClassicGame({
               to join, or ask for a new table.
             </p>
           )}
+          {seat < 0 && status === 0 && view.players.length >= 4 && (
+            <p className="notice" role="status">
+              This room is full. Ask a friend for a new invitation.
+            </p>
+          )}
         </div>
       ) : null}
       {view && active ? (
         <>
+          {online && live.wallet.status !== "connected" && (
+            <div className="notice" role="status">
+              Lace is disconnected. Reconnect with the same wallet and browser
+              to resume your private hand. {connect}
+            </div>
+          )}
+          {!online && showGuide && (
+            <div className="learn-strip" role="note">
+              <span className="learn-number">LEARN IN ONE HAND</span>
+              <p>
+                {view.phase === "play" && playing
+                  ? `Required rank: ${RANK_NAMES[view.rank]}s. Pick any card, even a different rank. Your cards land face-down.`
+                  : view.phase === "respond" && responding
+                    ? "Trust the claim, or call BLUFF. If they lied, they take the pile. If they told the truth, you take it."
+                    : view.phase === "reveal"
+                      ? "Only the challenged play flips over. The rest of the pile stays hidden."
+                      : view.latest?.outcome === "passed"
+                        ? "No one challenged. Those cards stay hidden in the growing pile; the required rank advances."
+                        : view.latest?.outcome
+                          ? "The wrong side takes the entire pile. Your final play must survive before you win."
+                          : "Watch the required rank and pile. Cat reactions are random; they reveal nothing."}
+              </p>
+              <button
+                className="text-button"
+                onClick={() => {
+                  setShowGuide(false);
+                  localStorage.setItem("cat-bluff-guide", "done");
+                }}
+              >
+                Skip guide ×
+              </button>
+            </div>
+          )}
           <div className="classic-seats" aria-label="Players and hand sizes">
             {view.players.map((p, i) => (
               <div
@@ -579,13 +745,16 @@ export function ClassicGame({
               </div>
             ))}
           </div>
-          <div className="classic-board">
+          <div className={`classic-board phase-${view.phase}`}>
             <div className="rank-sign">
               <span>REQUIRED RANK</span>
               <b>{RANKS[view.rank]}</b>
               <small>next {RANKS[(view.rank + 1) % 13]}</small>
             </div>
             <div className="classic-turn" aria-live="polite">
+              {view.phase === "finished" && (
+                <img className="winner-cat" src="/memes/pop.png" alt="" />
+              )}
               <span className="eyebrow">
                 ROUND {view.round} ·{" "}
                 {view.phase === "finished"
@@ -596,10 +765,17 @@ export function ClassicGame({
               <p>{hint}</p>
               {view.latest && view.phase !== "play" && (
                 <div className="claim-bubble">
-                  {name(view.latest.actor)}: “
-                  {declaration(view.latest.quantity, view.latest.rank)}.”
+                  <small>LATEST CLAIM</small>
+                  <strong>
+                    {name(view.latest.actor)} played{" "}
+                    {declaration(view.latest.quantity, view.latest.rank)}
+                  </strong>
                 </div>
               )}
+              {view.latest?.challenger !== undefined &&
+                (view.phase === "reveal" || view.phase === "transfer") && (
+                  <span className="bluff-stamp">BLUFF!</span>
+                )}
               {responding && (
                 <div className="classic-actions response-actions">
                   <button
@@ -607,7 +783,7 @@ export function ClassicGame({
                     disabled={busy}
                     onClick={() => void act({ kind: "pass" })}
                   >
-                    Trust →
+                    Trust the claim
                   </button>
                   <button
                     className="button primary bluff-button"
@@ -644,7 +820,7 @@ export function ClassicGame({
                     online ? void act({ kind: "start" }) : deal()
                   }
                 >
-                  Deal another round ↗
+                  Play again ↗
                 </button>
               )}
               {view.phase === "finished" && online && seat !== 0 && (
@@ -680,14 +856,31 @@ export function ClassicGame({
               <b>{view.pileSize}</b>
               <span>CATS AT STAKE</span>
             </div>
+            {view.phase === "transfer" &&
+              view.latest?.receiver !== undefined && (
+                <span
+                  className="penalty-flight"
+                  aria-hidden="true"
+                  style={
+                    {
+                      "--flight-x": `${(view.latest.receiver - (view.players.length - 1) / 2) * 100}px`,
+                    } as CSSProperties
+                  }
+                >
+                  <CatCard back small />
+                </span>
+              )}
           </div>
+          <p className="chaos-note">
+            Cat Chaos · reactions are random. They do not reveal anyone’s cards.
+          </p>
           {view.latest?.revealed && (
             <div className="classic-result" role="status">
               <div>
                 <span className="eyebrow">
                   {view.latest.outcome === "bluff"
-                    ? "CAUGHT!"
-                    : "THAT CAT TOLD THE TRUTH."}
+                    ? "CAUGHT BLUFFING"
+                    : "THE CLAIM WAS TRUE"}
                 </span>
                 <p>{recordText(view.latest)}</p>
               </div>
@@ -710,8 +903,78 @@ export function ClassicGame({
                   <span className="eyebrow">FOR YOUR EYES ONLY</span>
                   <h2 id="hand-title">Your {view.hand.length} cats.</h2>
                 </div>
-                <span>4 of each rank in the deck</span>
+                <span>Only you can see your hand</span>
               </div>
+              {seat >= 0 && view.hand.length > 0 && (
+                <div className="hand-tools">
+                  <button
+                    className="text-button"
+                    aria-pressed={sortHand === "rank"}
+                    onClick={() =>
+                      setSortHand(sortHand === "rank" ? "deal" : "rank")
+                    }
+                  >
+                    Sort: {sortHand === "rank" ? "rank" : "dealt order"} ↕
+                  </button>
+                  <button
+                    className="text-button"
+                    aria-expanded={expandedHand}
+                    onClick={() => setExpandedHand(!expandedHand)}
+                  >
+                    {expandedHand ? "Compact hand" : "Expand hand"}
+                  </button>
+                  {playing && selected.length > 0 && (
+                    <button
+                      className="text-button"
+                      onClick={() => {
+                        setSelected([]);
+                        setInspected(null);
+                      }}
+                    >
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+              )}
+              {playing && (
+                <div className="classic-playbar play-controls">
+                  <div>
+                    <strong>
+                      {selected.length
+                        ? `${selected.length} selected · Claim: ${declaration(selected.length, view.rank)}`
+                        : "Select your cats."}
+                    </strong>
+                    <span>
+                      {selected.length
+                        ? "This is your public claim. Selected ranks stay hidden."
+                        : "Any rank can be played. The lie is yours to tell."}
+                    </span>
+                  </div>
+                  {selected.length > 0 && (
+                    <div
+                      className="selected-tray"
+                      aria-label={`${selected.length} selected cards`}
+                    >
+                      {selected.slice(0, 5).map((id) => (
+                        <span key={id}>
+                          {DECK[id].rank}
+                          {DECK[id].suit}
+                        </span>
+                      ))}
+                      {selected.length > 5 && (
+                        <span>+{selected.length - 5}</span>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    className="button primary"
+                    disabled={!selected.length || busy}
+                    onClick={() => void act({ kind: "play", cards: selected })}
+                  >
+                    Play {selected.length || ""} face down ↗
+                  </button>
+                </div>
+              )}
               {artError && (
                 <p role="alert">
                   {artError}{" "}
@@ -733,53 +996,57 @@ export function ClassicGame({
                     : " Your final claim still needs to survive."}
                 </p>
               ) : (
-                <div className="classic-hand-grid">
+                <div
+                  className={`classic-hand-grid ${expandedHand ? "is-expanded" : ""}`}
+                  role="region"
+                  aria-label="Your private cards"
+                  tabIndex={0}
+                >
                   {[...view.hand]
-                    .sort((a, b) => a - b)
+                    .sort(sortHand === "rank" ? (a, b) => a - b : () => 0)
                     .map((id) => (
                       <button
                         key={id}
                         className={`classic-hand-card hand-card ${selected.includes(id) ? "is-selected" : ""}`}
                         aria-label={`${DECK[id].rank} of ${DECK[id].suitName}, ${DECK[id].name}`}
                         aria-pressed={selected.includes(id)}
-                        disabled={!playing || busy}
-                        onClick={() =>
-                          setSelected((s) =>
-                            s.includes(id)
-                              ? s.filter((c) => c !== id)
-                              : [...s, id],
-                          )
-                        }
+                        disabled={busy}
+                        onClick={() => {
+                          setInspected(id);
+                          if (playing)
+                            setSelected((s) =>
+                              s.includes(id)
+                                ? s.filter((c) => c !== id)
+                                : [...s, id],
+                            );
+                        }}
                       >
                         {card(id, true)}
-                        <span className="selection-dot">
-                          {selected.includes(id) ? "✓" : "+"}
-                        </span>
+                        {playing && (
+                          <span className="selection-dot">
+                            {selected.includes(id) ? "✓" : "+"}
+                          </span>
+                        )}
                       </button>
                     ))}
                 </div>
               )}
-              {playing && (
-                <div className="classic-playbar play-controls">
+              {inspected !== null && view.hand.includes(inspected) && (
+                <div className="card-inspect">
+                  <div className="inspect-art">{card(inspected)}</div>
                   <div>
+                    <span className="eyebrow">PRIVATE CARD</span>
                     <strong>
-                      {selected.length
-                        ? `“${declaration(selected.length, view.rank)}.”`
-                        : "Pick your cats."}
+                      {DECK[inspected].rank} of {DECK[inspected].suitName}
                     </strong>
-                    <span>
-                      {selected.length
-                        ? "This is your public claim. Selected ranks stay hidden."
-                        : "Any rank can be played. The lie is yours to tell."}
-                    </span>
+                    <p>{DECK[inspected].name} · only visible to you.</p>
+                    <button
+                      className="text-button"
+                      onClick={() => setInspected(null)}
+                    >
+                      Close preview ×
+                    </button>
                   </div>
-                  <button
-                    className="button primary"
-                    disabled={!selected.length || busy}
-                    onClick={() => void act({ kind: "play", cards: selected })}
-                  >
-                    Play {selected.length || ""} face down ↗
-                  </button>
                 </div>
               )}
             </section>

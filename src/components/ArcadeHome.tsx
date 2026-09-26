@@ -3,6 +3,7 @@ import { CatCard } from "./CatCard";
 import { DECK } from "../game/classic-cards";
 import { CATS } from "../game/cat-bluff";
 import { reactMeme } from "../game/sound";
+import { readClassicInvite } from "../game/classic-invite";
 import type { MemeId } from "../game/memes";
 const reactions: MemeId[] = ["pop", "huh", "polite", "oiia", "crying"];
 const bios = [
@@ -22,6 +23,19 @@ export function ArcadeHome({
   sound: boolean;
 }) {
   const [suspect, setSuspect] = useState(0);
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [invite, setInvite] = useState("");
+  const [joinError, setJoinError] = useState("");
+  function joinRoom() {
+    try {
+      const url = new URL(invite.trim(), location.origin);
+      if (url.origin !== location.origin || !readClassicInvite(url.search))
+        throw new Error();
+      location.assign(url.href);
+    } catch {
+      setJoinError("Paste a Cat Bluff invitation link from a friend.");
+    }
+  }
   return (
     <div className="arcade-home">
       <section className="arcade-hero" aria-labelledby="hero-title">
@@ -30,24 +44,49 @@ export function ArcadeHome({
             <img src="/memes/huh.jpg" alt="" /> A PARTY GAME WITH TRUST ISSUES
           </span>
           <h1 id="hero-title">
-            GOOD CATS.
+            Cute faces.
             <br />
-            <span>BAD ALIBIS.</span>
+            <span>Questionable claims.</span>
           </h1>
           <p>
-            52 cats. One very risky pile.
+            A private bluffing game for 2–4 suspicious friends.
             <br />
-            Lie to your friends. Get judged by cats.
+            52 cats. One very risky pile.
           </p>
           <div className="hero-actions">
-            <button className="button primary hero-play" onClick={onPractice}>
-              Try a practice round <span aria-hidden="true">↗</span>
-              <img src="/memes/pop.png" alt="" />
+            <button className="button primary hero-play" onClick={onFriends}>
+              Create room <span aria-hidden="true">↗</span>
             </button>
-            <button className="button secondary" onClick={onFriends}>
-              Play with friends <span aria-hidden="true">↗</span>
+            <button
+              className="button secondary"
+              onClick={() => setJoinOpen(!joinOpen)}
+            >
+              Join room <span aria-hidden="true">↗</span>
             </button>
           </div>
+          {joinOpen && (
+            <div className="join-box">
+              <label htmlFor="invite-link">Invitation link</label>
+              <div>
+                <input
+                  id="invite-link"
+                  value={invite}
+                  onChange={(e) => {
+                    setInvite(e.target.value);
+                    setJoinError("");
+                  }}
+                  placeholder="Paste the link your friend sent"
+                />
+                <button className="button primary" onClick={joinRoom}>
+                  Join table
+                </button>
+              </div>
+              {joinError && <p role="alert">{joinError}</p>}
+            </div>
+          )}
+          <button className="text-button learn-link" onClick={onPractice}>
+            Learn in one hand · practice with bots ↗
+          </button>
           <div className="hero-notes">
             <span>INSTANT PRACTICE</span>
             <i />
@@ -131,11 +170,7 @@ export function ArcadeHome({
         <div className="section-heading">
           <div>
             <span className="eyebrow">THE LINEUP</span>
-            <h2 id="suspect-title">
-              ALL FACES.
-              <br />
-              NO INNOCENCE.
-            </h2>
+            <h2 id="suspect-title">A deck full of alibis.</h2>
           </div>
           <p>
             Tap a suspect. Get acquainted.
@@ -173,11 +208,7 @@ export function ArcadeHome({
       <section className="how-section" data-reveal aria-labelledby="how-title">
         <div className="how-title">
           <span className="eyebrow">THE ENTIRE RULEBOOK</span>
-          <h2 id="how-title">
-            SMALL RULES.
-            <br />
-            BIG SIDE-EYE.
-          </h2>
+          <h2 id="how-title">The game in three moves.</h2>
           <div className="scroll-cat">
             <img
               src="/memes/oiia.png"
@@ -228,11 +259,7 @@ export function ArcadeHome({
         />
         <div>
           <span className="eyebrow">YOUR POKER FACE IS LOADING…</span>
-          <h2>
-            GO ON.
-            <br />
-            LOOK INNOCENT.
-          </h2>
+          <h2>Deal me in. I look innocent.</h2>
           <button className="button primary" onClick={onPractice}>
             Deal me a practice hand <span aria-hidden="true">↗</span>
           </button>

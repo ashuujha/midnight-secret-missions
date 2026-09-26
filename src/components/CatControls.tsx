@@ -1,79 +1,78 @@
-import { reactMeme, stopSound } from "../game/sound";
+import { stopSound } from "../game/sound";
+
+function Switch({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <button
+      className="club-switch-row"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={onChange}
+    >
+      <span>{label}</span>
+      <span className="club-switch-track" aria-hidden="true">
+        <i>·</i>
+      </span>
+    </button>
+  );
+}
+
 export function CatControls({
   theme,
   sound,
+  gameSound,
   motion,
   onTheme,
   onSound,
+  onGameSound,
   onMotion,
 }: {
   theme: string;
   sound: boolean;
+  gameSound: boolean;
   motion: boolean;
   onTheme: () => void;
   onSound: () => void;
+  onGameSound: () => void;
   onMotion: () => void;
 }) {
-  const dark = theme === "dark";
   return (
     <div className="cat-controls" data-meme-silent>
-      <button
-        className={`sound-cat ${sound ? "is-on" : ""}`}
-        aria-label={sound ? "Mute meme sounds" : "Enable meme sounds"}
-        aria-pressed={sound}
-        onClick={() => {
-          if (sound) stopSound();
-          else reactMeme("huh", true, "SOUND CHECK. huh?");
-          onSound();
-        }}
-      >
-        <img src="/memes/huh.jpg" alt="" />
-        <span>
-          <b>{sound ? "YAP ON" : "YAP OFF"}</b>
-          <small>sound</small>
-        </span>
-        <i aria-hidden="true">{sound ? "♫" : "×"}</i>
-      </button>
-      <button
-        className="cat-switch"
-        role="switch"
-        aria-checked={dark}
-        aria-label="Dark theme"
-        title={dark ? "Return to day cat" : "Activate night goblin"}
-        onClick={() => {
-          reactMeme(
-            dark ? "pop" : "oiia",
-            sound,
-            dark ? "DAY CAT HAS ENTERED." : "3AM GOBLIN ACTIVATED.",
-          );
-          onTheme();
-        }}
-      >
-        <span className="switch-day">
-          DAY
-          <br />
-          CAT
-        </span>
-        <span className="switch-night">
-          3AM
-          <br />
-          CAT
-        </span>
-        <span className="switch-cat">
-          <img src={dark ? "/memes/oiia.png" : "/memes/pop.png"} alt="" />
-        </span>
-      </button>
-      <button
-        className="motion-toggle"
-        aria-pressed={motion}
-        aria-label={
-          motion ? "Pause playful animations" : "Enable playful animations"
-        }
-        title="Click and scroll effects"
-        onClick={onMotion}
-      >
-        FX<span>{motion ? "ON" : "OFF"}</span>
-      </button>
+      <details className="club-settings">
+        <summary aria-label="Game settings" title="Game settings">
+          Settings <span aria-hidden="true">⚙</span>
+        </summary>
+        <div className="club-settings-menu">
+          <strong>Make yourself at home</strong>
+          <Switch
+            label="Night clubhouse"
+            checked={theme === "dark"}
+            onChange={onTheme}
+          />
+          <Switch
+            label="Game sounds"
+            checked={gameSound}
+            onChange={onGameSound}
+          />
+          <Switch
+            label="Meme sounds"
+            checked={sound}
+            onChange={() => {
+              if (sound) stopSound();
+              onSound();
+            }}
+          />
+          <Switch label="Motion effects" checked={motion} onChange={onMotion} />
+        </div>
+      </details>
     </div>
   );
 }

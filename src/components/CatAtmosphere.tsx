@@ -1,30 +1,17 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  MEMES,
-  lastReactionAt,
-  pickMeme,
-  type MemeId,
-  type MemeReaction,
-} from "../game/memes";
-import { reactMeme, stopSound } from "../game/sound";
+import { useEffect, useState } from "react";
+import { MEMES, type MemeReaction } from "../game/memes";
+import { stopSound } from "../game/sound";
 
 export function CatAtmosphere({
-  sound,
   motion,
   mode,
 }: {
-  sound: boolean;
   motion: boolean;
   mode: string;
 }) {
   const [reaction, setReaction] = useState<
     (MemeReaction & { key: number }) | null
   >(null);
-  const previous = useRef<MemeId>("pop");
-  const soundEnabled = useRef(sound);
-  useEffect(() => {
-    soundEnabled.current = sound;
-  }, [sound]);
   useEffect(() => {
     let clear: ReturnType<typeof setTimeout>;
     const receive = (event: Event) => {
@@ -33,21 +20,6 @@ export function CatAtmosphere({
       clearTimeout(clear);
       clear = setTimeout(() => setReaction(null), detail.durationMs ?? 1750);
     };
-    const click = (event: MouseEvent) => {
-      const target = (event.target as Element).closest("button,a");
-      if (
-        !target ||
-        target.closest(
-          "[data-meme-silent],.hand-card,.response-actions,.play-controls",
-        ) ||
-        target.matches(":disabled") ||
-        performance.now() - lastReactionAt() < 220
-      )
-        return;
-      const id = pickMeme(previous.current);
-      previous.current = id;
-      reactMeme(id, soundEnabled.current);
-    };
     const visibility = () => {
       if (document.hidden) {
         stopSound();
@@ -55,12 +27,10 @@ export function CatAtmosphere({
       }
     };
     window.addEventListener("cat-bluff:meme", receive);
-    document.addEventListener("click", click);
     document.addEventListener("visibilitychange", visibility);
     return () => {
       clearTimeout(clear);
       window.removeEventListener("cat-bluff:meme", receive);
-      document.removeEventListener("click", click);
       document.removeEventListener("visibilitychange", visibility);
     };
   }, []);
@@ -98,6 +68,7 @@ export function CatAtmosphere({
     };
     const click = (e: PointerEvent) => {
       if (
+        mode !== "home" ||
         !allowed() ||
         performance.now() - lastPaw < 180 ||
         decorations.size >= 4 ||
@@ -152,7 +123,7 @@ export function CatAtmosphere({
       reduce.removeEventListener("change", reset);
       decorations.forEach((p) => p.remove());
     };
-  }, [motion]);
+  }, [motion, mode]);
   useEffect(() => {
     if (!motion || matchMedia("(prefers-reduced-motion: reduce)").matches)
       return;

@@ -27,7 +27,12 @@ export function useCatChaos({
         : { scope, round, play, pending },
     );
     if (fresh && !document.hidden) {
-      reactMeme(pickChaosMeme(), sound, "a clue? …maybe.", CHAOS_DURATION_MS);
+      reactMeme(
+        pickChaosMeme(),
+        sound,
+        "Random reaction. Not a clue.",
+        CHAOS_DURATION_MS,
+      );
     }
   }, [scope, round, play, pending, sound]);
 }
