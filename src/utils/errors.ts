@@ -21,9 +21,19 @@ export const getProofServerOrigin = (value: string | undefined): string | undefi
   }
 };
 
+// Lace can keep exposing an injected proxy after its extension channel shuts down.
+// Repeating a transaction cannot revive that proxy; the extension/page must reconnect.
+const isExpiredWalletSession = (message: string): boolean =>
+  /remote api.*was shut ?down|object can no longer be used|extension context invalidated|attempting to use a disconnected port/i.test(message);
+
+const walletSessionRecovery =
+  "Lace's extension connection stopped. Open chrome://extensions, switch Lace off and back on, unlock it, then reload this page and reconnect. Keep your wallet and site data.";
+
 export const friendlyWalletError = (error: unknown, networkId: string): string => {
   const message = getErrorMessage(error);
   const normalized = message.toLowerCase();
+
+  if (isExpiredWalletSession(message)) return walletSessionRecovery;
 
   if (/reject|denied|not authorized|cancel/.test(normalized)) {
     return 'Wallet connection was rejected. Approve the request in Lace and try again.';
@@ -45,6 +55,10 @@ export const friendlyWalletError = (error: unknown, networkId: string): string =
 export const friendlyCircuitError = (error: unknown, networkId: string): string => {
   const message = getErrorMessage(error);
   const normalized = message.toLowerCase();
+
+  if (isExpiredWalletSession(message)) {
+    return `${walletSessionRecovery} Before repeating the action, check Lace activity for a pending or submitted transaction.`;
+  }
 
   if (/dynamically imported module|module script|loading chunk|importing a module/.test(normalized)) {
     return 'The proving tools could not be downloaded. Check your internet connection and reload the page before trying again.';

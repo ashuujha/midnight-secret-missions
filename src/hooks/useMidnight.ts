@@ -98,7 +98,12 @@ export function MidnightProvider({ children }: PropsWithChildren) {
 
   const connect = useCallback(async () => {
     const version = ++connectionVersion.current;
-    const wallet = connector ?? findLace();
+    // Always look up the current injection; the extension may have restarted.
+    const wallet = findLace();
+    setConnectedAPI(null);
+    setAddress(null);
+    setDustAddress(null);
+    setDustBalance(null);
     if (!wallet) {
       setStatus('not-installed');
       setError('Lace wallet was not found. Install Lace, enable Midnight, and reload this page.');
@@ -139,7 +144,7 @@ export function MidnightProvider({ children }: PropsWithChildren) {
       setError(friendlyWalletError(connectionError, MIDNIGHT_NETWORK));
       setStatus('ready');
     }
-  }, [connector]);
+  }, []);
 
   const disconnect = useCallback(() => {
     connectionVersion.current += 1;
