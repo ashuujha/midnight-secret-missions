@@ -69,7 +69,7 @@ export function CatControls({
         aria-label={
           motion ? "Pause playful animations" : "Enable playful animations"
         }
-        title="Cursor and scroll effects"
+        title="Click and scroll effects"
         onClick={onMotion}
       >
         FX<span>{motion ? "ON" : "OFF"}</span>

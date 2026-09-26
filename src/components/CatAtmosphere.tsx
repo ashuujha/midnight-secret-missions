@@ -20,7 +20,6 @@ export function CatAtmosphere({
   const [reaction, setReaction] = useState<
     (MemeReaction & { key: number }) | null
   >(null);
-  const cursor = useRef<HTMLDivElement>(null);
   const previous = useRef<MemeId>("pop");
   const soundEnabled = useRef(sound);
   useEffect(() => {
@@ -81,10 +80,6 @@ export function CatAtmosphere({
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
-        if (cursor.current) {
-          cursor.current.style.transform = `translate3d(${x + 20}px,${y + 16}px,0) rotate(${Math.sin(x / 150) * 12}deg)`;
-          cursor.current.style.opacity = "1";
-        }
         const scene = document.querySelector<HTMLElement>(".hero-scene");
         if (scene) {
           const r = scene.getBoundingClientRect();
@@ -100,9 +95,6 @@ export function CatAtmosphere({
           );
         }
       });
-    };
-    const leave = () => {
-      if (cursor.current) cursor.current.style.opacity = "0";
     };
     const click = (e: PointerEvent) => {
       if (
@@ -148,21 +140,17 @@ export function CatAtmosphere({
         );
     };
     const reset = () => {
-      leave();
       if (reduce.matches) decorations.forEach((p) => p.remove());
     };
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerdown", click, { passive: true });
-    document.addEventListener("pointerleave", leave);
     reduce.addEventListener("change", reset);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerdown", click);
-      document.removeEventListener("pointerleave", leave);
       reduce.removeEventListener("change", reset);
       decorations.forEach((p) => p.remove());
-      leave();
     };
   }, [motion]);
   useEffect(() => {
@@ -214,9 +202,6 @@ export function CatAtmosphere({
   }, [mode, motion]);
   return (
     <>
-      <div ref={cursor} className="cursor-cat" aria-hidden="true">
-        <img src="/memes/oiia.png" alt="" />
-      </div>
       {reaction && (
         <div
           key={reaction.key}
