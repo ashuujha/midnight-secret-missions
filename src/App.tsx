@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { ArcadeHome } from "./components/ArcadeHome";
+import { CatAtmosphere } from "./components/CatAtmosphere";
+import { CatControls } from "./components/CatControls";
 import { CatCard } from "./components/CatCard";
 import { Dialog } from "./components/Dialog";
 import {
@@ -33,7 +36,10 @@ export default function App() {
     () => localStorage.getItem("cat-bluff-theme") || "light",
   );
   const [sound, setSound] = useState(
-    () => localStorage.getItem("cat-bluff-sound") === "on",
+    () => localStorage.getItem("cat-bluff-sound") !== "off",
+  );
+  const [motion, setMotion] = useState(
+    () => localStorage.getItem("cat-bluff-motion") !== "off",
   );
   const [modal, setModal] = useState<
     "rules" | "invite" | "privacy" | "settings" | null
@@ -73,23 +79,29 @@ export default function App() {
           ? `Player ${table.players.findIndex((p) => p.id === id) + 1}`
           : "A player";
   const say = (s: Sound) => {
-    if (sound) playSound(s);
+    playSound(s, sound);
   };
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("cat-bluff-theme", theme);
     document
       .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", theme === "dark" ? "#172923" : "#f5f2e9");
+      ?.setAttribute("content", theme === "dark" ? "#141126" : "#ffffff");
   }, [theme]);
   useEffect(() => {
     localStorage.setItem("cat-bluff-sound", sound ? "on" : "off");
     if (!sound) stopSound();
   }, [sound]);
   useEffect(() => {
+    document.documentElement.dataset.fx = motion ? "on" : "off";
+    localStorage.setItem("cat-bluff-motion", motion ? "on" : "off");
+  }, [motion]);
+  useEffect(() => {
+    if (!busy && mode !== "live") return;
+    setClock(Date.now());
     const id = setInterval(() => setClock(Date.now()), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [busy, mode]);
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(""), 4500);
@@ -109,13 +121,11 @@ export default function App() {
   useEffect(() => {
     if (mode !== "practice" || practice.table.status === 2) return;
     const t = practice.table;
-    if (
-      !(
-        (t.phase === 0 && t.turn === 1) ||
-        (t.phase === 1 && t.responder === 1) ||
-        (t.phase === 2 && t.actor === "miso")
-      )
-    )
+    if (!(
+      (t.phase === 0 && t.turn === 1) ||
+      (t.phase === 1 && t.responder === 1) ||
+      (t.phase === 2 && t.actor === "miso")
+    ))
       return;
     const timer = setTimeout(
       () =>
@@ -163,6 +173,7 @@ export default function App() {
     if (
       !source ||
       !target ||
+      !motion ||
       matchMedia("(prefers-reduced-motion: reduce)").matches
     )
       return;
@@ -275,7 +286,8 @@ export default function App() {
     }
   }
   return (
-    <div className="app">
+    <div className={`app mode-${mode}`}>
+      <CatAtmosphere sound={sound} motion={motion} mode={mode} />
       <header className="topbar">
         <button
           className="wordmark"
@@ -283,122 +295,30 @@ export default function App() {
           onClick={() => setMode("home")}
           aria-label="Cat Bluff home"
         >
+          <img src="/memes/pop.png" alt="" />
           cat bluff<span className="wordmark-dot">.</span>
         </button>
         <nav aria-label="Game controls">
           <button className="text-button" onClick={() => setModal("rules")}>
             How to play
           </button>
-          <button
-            className="icon-button"
-            aria-label={sound ? "Mute sounds" : "Enable meme sounds"}
-            aria-pressed={sound}
-            title="Meme sounds"
-            onClick={() => {
-              setSound(!sound);
-              if (!sound) playSound("challenge");
-            }}
-          >
-            {sound ? "♫" : "♪"}
-            <span className="control-label">
-              {sound ? "Sound on" : "Sound off"}
-            </span>
-          </button>
-          <button
-            className="icon-button"
-            aria-label={
-              theme === "light" ? "Use dark theme" : "Use light theme"
-            }
-            title="Change theme"
-            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-          >
-            {theme === "light" ? "☾" : "☀"}
-            <span className="control-label">
-              {theme === "light" ? "Dark" : "Light"}
-            </span>
-          </button>
-          {mode !== "home" && (
-            <button
-              className="text-button settings-button"
-              onClick={() => setModal("settings")}
-            >
-              Settings
-            </button>
-          )}
+          <CatControls
+            theme={theme}
+            sound={sound}
+            motion={motion}
+            onTheme={() => setTheme(theme === "light" ? "dark" : "light")}
+            onSound={() => setSound(!sound)}
+            onMotion={() => setMotion(!motion)}
+          />
         </nav>
       </header>
       <main>
         {mode === "home" ? (
-          <section className="welcome">
-            <div className="welcome-copy">
-              <span className="eyebrow">
-                A card game for very innocent people
-              </span>
-              <h1>
-                Cute faces.
-                <br />
-                <em>Terrible liars.</em>
-              </h1>
-              <p>
-                Put a cat down. Make a claim.
-                <br />
-                See who’s brave enough to call your bluff.
-              </p>
-              <div className="welcome-actions">
-                <button
-                  className="button primary"
-                  onClick={() => startPractice()}
-                >
-                  Learn with Miso <span>↗</span>
-                </button>
-                <button
-                  className="button secondary"
-                  onClick={() => setMode("live")}
-                >
-                  Play with friends
-                </button>
-              </div>
-              <span className="quiet">
-                Practice instantly · Live tables for 2–4 players
-              </span>
-            </div>
-            <div className="welcome-art" aria-label="Meme cat playing cards">
-              <div className="speech-sticker">“me? lie? never.”</div>
-              <div className="hero-card hero-left">
-                <CatCard cat={3} />
-              </div>
-              <div className="hero-card hero-right">
-                <CatCard cat={0} />
-              </div>
-              <div className="hero-card hero-front">
-                <CatCard cat={2} />
-              </div>
-              <span className="art-note">five cats. zero trust.</span>
-            </div>
-            <ol className="intro-steps">
-              <li>
-                <span>01</span>
-                <div>
-                  <strong>Play it face down</strong>
-                  <p>Only you know which cat it is.</p>
-                </div>
-              </li>
-              <li>
-                <span>02</span>
-                <div>
-                  <strong>Tell a little story</strong>
-                  <p>Tell the truth. Or don’t.</p>
-                </div>
-              </li>
-              <li>
-                <span>03</span>
-                <div>
-                  <strong>Call. Bluff.</strong>
-                  <p>Wrong side draws two. Empty your hand to win.</p>
-                </div>
-              </li>
-            </ol>
-          </section>
+          <ArcadeHome
+            onPractice={() => startPractice()}
+            onFriends={() => setMode("live")}
+            sound={sound}
+          />
         ) : (
           <section className="game-shell">
             <div className="table-toolbar">
@@ -425,6 +345,12 @@ export default function App() {
                     Invite friends ↗
                   </button>
                 )}
+                <button
+                  className="text-button"
+                  onClick={() => setModal("settings")}
+                >
+                  Settings
+                </button>
                 <button
                   className="text-button"
                   disabled={busy}
@@ -546,6 +472,15 @@ export default function App() {
                   </div>
                   <div className="felt">
                     <div className="table-heading">
+                      <img
+                        className="table-judge"
+                        src={
+                          myProof || myResponse
+                            ? "/memes/huh.jpg"
+                            : "/memes/smudge.jpg"
+                        }
+                        alt=""
+                      />
                       <span className="eyebrow">
                         {table.status === 2
                           ? "That’s the game"
@@ -606,7 +541,12 @@ export default function App() {
                         )}
                       </div>
                       <div className="table-aside">
-                        <span className="little-label">HOUSE RULE</span>
+                        <img
+                          className="house-cat"
+                          src="/memes/oiia.png"
+                          alt=""
+                        />
+                        <span className="little-label">HOUSE CAT SAYS</span>
                         <p>
                           {table.phase === 2
                             ? "No peeking. Just a verdict."
@@ -736,7 +676,12 @@ export default function App() {
                         </h2>
                         <span>Only on your screen</span>
                       </div>
-                      <div className="hand-scroll" tabIndex={0} role="region" aria-label="Scroll your private hand">
+                      <div
+                        className="hand-scroll"
+                        tabIndex={0}
+                        role="region"
+                        aria-label="Scroll your private hand"
+                      >
                         <div className="hand">
                           {mine.map((cat, i) => (
                             <button
@@ -803,8 +748,8 @@ export default function App() {
                 <div>
                   <strong>{stageCopy[live.stage]}</strong>
                   <p>
-                    {Math.max(0, Math.floor((clock - live.started) / 1000))}s · Your move
-                    counts after confirmation. Keep this tab open.
+                    {Math.max(0, Math.floor((clock - live.started) / 1000))}s ·
+                    Your move counts after confirmation. Keep this tab open.
                     {live.stage === "proving"
                       ? " A sleeping hosted prover can take longer to wake up."
                       : ""}
@@ -837,7 +782,7 @@ export default function App() {
         )}
       </main>
       <footer>
-        <span>A little bluff. A lot of cats.</span>
+        <span>A card game. A cat problem. A very good time.</span>
         <button className="text-button" onClick={() => setModal("privacy")}>
           What stays private?
         </button>
