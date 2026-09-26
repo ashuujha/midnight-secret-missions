@@ -2,23 +2,21 @@
 
 ## What is the product, and who uses it?
 
-Cat Bluff is a **Consumer & Social / Gaming** product for 2–4 friends who enjoy deception, deduction and cat memes. It adapts the familiar Cheat/Bluff card game: one conserved 52-card deck, four cards of every rank, and a distinct meme visual for each physical card. Players know their own hands, see opponents' hand counts, and take turns declaring the required rank while placing one or more cards face down. The rank follows Ace through King, then repeats.
+Cat Bluff is a **Consumer & Social / Gaming** card game for 2–4 friends. A single 52-card deck has four of each rank and a distinct cat meme for every physical card. Players see their own hands and opponents' hand counts. Each turn, a player places cards face down and claims the required rank, which cycles from Ace to King.
 
-Opponents may trust a claim or call BLUFF. A challenge opens only the latest play. If any card has the wrong rank, the bluffer picks up the entire central pile; an honest play makes the challenger pick it up. Unchallenged cards accumulate, increasing the cost of a mistaken challenge. The first empty hand wins only after its final claim is resolved. Memory, the four-copy limit, a player's remaining hand count and the size of the pile create the decisions; there are no stakes, tokens, XP, special powers or artificial delays.
+Opponents trust the claim or call BLUFF. A challenge reveals that turn's cards: the liar picks up the entire pile, or the challenger does if the claim was honest. The first empty hand wins only after its final claim survives. The growing pile makes each challenge riskier and rewards memory, probability and reading opponents. There are no stakes or token rewards.
 
-Cat Chaos adds a short random cat image, animation or sound after a play. It never reads the submitted card or rank, so a reaction is not evidence of truth or a bluff. This is presentation only: the actual cards and challenge result determine the outcome.
+Cat Chaos adds a brief random meme/sound reaction independent of the played cards. It adds personality without changing the outcome. Players can learn through local practice, then invite friends to a live room.
 
-The app uses React, Lace and Midnight, with instant local practice and shareable live rooms. The V4 contract provides a joint private shuffle without a hosted dealer. The previously deployed V3 five-cat game remains available to existing rooms. This proposal describes the current Cat Bluff Classic 52 product; program approval of the revised card mechanic has not been confirmed.
+This proposal describes Classic 52. Program approval of the revised card mechanic has not been confirmed.
 
 ## Why Midnight specifically?
 
-Fair card play requires two properties that conflict on a fully transparent ledger: opponents must not see hidden hands, yet they must verify that nobody duplicates cards, swaps a challenged card or invents a pickup. Midnight lets private witnesses constrain public encrypted state. Each participant proves a valid private permutation and re-randomization of the original deck, then contributes a verified partial decryption that leaves the recipient's encryption intact. No individual dealer receives the complete plaintext deck.
+Opponents need to verify legal moves without seeing hidden hands. Midnight lets private witnesses constrain public encrypted state: players prove valid shuffles, card ownership, challenge openings and pile transfers. Joint shuffling and verified partial decryption let each recipient open their own hand without giving an individual dealer the complete plaintext deck.
 
-The same verification boundary enforces legal card ownership, response order, challenge openings and private re-encryption during pile pickup. Only challenged cards become public; other cards remain encrypted to their current holder. This makes privacy part of the bluffing mechanic itself. A server-authoritative game could offer private hands too, but players would have to trust that server's dealing and adjudication.
+A transparent contract checking plaintext cards would expose hidden hands; a conventional server would have to be trusted to deal and adjudicate fairly. Midnight verifies these rules while deliberately revealing only challenged plays. Privacy is part of the bluffing mechanic.
 
-A full two-player deal mathematically reveals the opponent’s starting hand as the complement of one’s own, although face-down selections and encrypted-slot identities remain hidden. Three- and four-player tables preserve more uncertainty about individual hands; collusion can reduce it.
-
-The claim has limits: ciphertext slot movements and counts are public; previously revealed cards remain deducible; players can collude; a circuit cannot force honest random choice or an absent player to cooperate. A remote prover receives private inputs, including table keys, and must be trusted. A local prover is needed for privacy from that service. The protocol requires independent review before making stronger competitive-security claims.
+Limits remain: a two-player starting hand is inferable as the complement of the other hand; public history and collusion support further deductions. Privacy needs at least one honest, unpredictable shuffle. A remote prover sees private inputs and must be trusted. The full privacy model and operational limits are in [README.md](README.md#privacy-claim).
 
 ## Data Model
 
@@ -36,8 +34,8 @@ The claim has limits: ciphertext slot movements and counts are public; previousl
 
 ## Mainnet Feasibility
 
-The V4 implementation is bounded to four players and 52 cards, with ten public circuits. It preserves the existing app and V3 deployment, adds a fully playable local practice implementation, and tests actual compiled circuits for 2/3/4-player deals, conservation, private ownership, false openings, whole-pile transfers and rematches. The V4 contract compiles, 95 tests pass and the app builds. It is deployed on Preprod at `616618c2dd897208bc75fdf25a912fad5567d97935d002a199b8a528b1def946`; schema 4 and all ten verifier keys were checked on-chain. Local synthetic-state proving has also succeeded for all ten circuits. A complete multi-wallet Preprod playthrough and live latency measurement remain necessary before production promotion.
+Classic 52 has local practice, compiled-circuit tests and a verified Preprod deployment; [README.md](README.md#contract-address) records the address and release status. A complete multi-wallet Preprod round and live latency measurements are still needed.
 
-Joint shuffling introduces meaningful setup cost: each player contributes a shuffle and a private deal share. Challenge pickup can require multiple contributors to re-encrypt their pile cards. Ordinary plays do not repeat the shuffle. Circuit material is cached and prefetched, but actual proving, bandwidth, tDUST and confirmation costs must be measured before claiming satisfactory live gameplay. A free prover with limited memory may not support the largest circuits.
+The bounded scope—52 cards, 2–4 players and ten circuits—makes a casual Mainnet pilot a possible Level 6 target. Before that, measure proving time, memory, bandwidth, tDUST and confirmation latency, especially during joint setup and pile pickup. Cached assets do not remove proving costs.
 
-A casual, non-financial Mainnet pilot could be considered by Level 6 if Preprod validation, independent cryptographic/contract review, browser-key recovery, disconnect handling and measured load/latency meet release criteria. The current cooperative protocol can stall when someone refuses to open or transfer cards; resolving that without exposing private hands is an explicit next-stage design problem. Mainnet readiness should follow those results, not a successful frontend build. Rewards, gambling, marketplaces and ranked competition are outside the base release.
+Release also needs independent cryptographic/contract review, private-key recovery and disconnect handling. A player refusing to open or transfer cards can currently stall a room; that must be addressed without exposing hands. Mainnet readiness depends on these results. Gambling, marketplaces and financial rewards remain outside scope.

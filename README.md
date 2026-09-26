@@ -5,7 +5,7 @@
 
 Cat Bluff is a **2–4 player cat-meme card game** built around private hands, public claims and calling a friend's bluff. The card rank determines the rules; the cat picture gives each card its personality. Midnight verifies legal moves and challenged plays while unchallenged cards stay face down.
 
-**Classic 52 release status:** the new 2–4 player rules, joint private shuffle, practice table and V4 contract are implemented. **V4 is deployed on Preprod:** schema 4 and all ten verifier keys match this code. Ninety-five local tests and the production build pass. A complete multiplayer Preprod playthrough and production promotion remain pending. The existing V3 deployment remains the earlier five-cat game; its address cannot run the new rules.
+**Release status:** Classic 52 is deployed on Preprod and available in preview. Its 95 tests and production build pass. A complete multiplayer Preprod playthrough and production promotion remain pending; production currently serves the earlier five-cat game.
 
 ![Classic 52 practice table](screenshots/classic52-table.png)
 
@@ -23,8 +23,6 @@ For live play in the Classic 52 preview, choose **Play with friends**, connect L
 
 Existing V3 invitation links still open the earlier five-cat table. The new lobby also includes **Open earlier five-cat tables**. No V3 contract or saved hand is migrated or overwritten.
 
-The GitHub repository and Vercel project are both named **`cat-bluff`**. Existing site aliases stay available for ongoing games. Continue a private hand at the same site address and in the same browser where you joined; a new address does not carry over browser-local keys.
-
 ## Contract Address
 
 | Version | Network | Address / deployment status |
@@ -34,11 +32,9 @@ The GitHub repository and Vercel project are both named **`cat-bluff`**. Existin
 
 V4 has **schema 4 and ten public circuits**. The V3 address belongs only in `VITE_CAT_BLUFF_CONTRACT_ADDRESS`. A frontend deployment does not deploy a contract. Each version needs its own address from the table above.
 
-The V4 deployment succeeded in Preprod block **2,715,402**, transaction hash `065011fb07056ea87e768428697ed0f5bd27cd6846b69e2f3fae77b380866591`. Its on-chain verifier keys match the compiled artifacts for `createRoom`, `joinRoom`, `startRound`, `shuffleDeck`, `shareDeal`, `playCards`, `passClaim`, `callBluff`, `revealTurn` and `transferPile`. Deployment verification does not substitute for a complete multiplayer game.
+V4 deployment: Preprod block **2,715,402**, transaction `065011fb07056ea87e768428697ed0f5bd27cd6846b69e2f3fae77b380866591`. Schema 4 and all ten verifier keys match the compiled contract.
 
 ## What This Does
-
-### How to play Cat Bluff
 
 1. **Deal every cat.** A single 52-card deck contains 13 ranks and four physical copies of each. Each card has its own cat meme image. Two players get 26 each; three get 18/17/17; four get 13 each.
 2. **Play face down.** Select one or more cards. The required rank starts at Ace. Playing two cards declares “2 Aces.” The quantity is exact; the ranks may be a lie.
@@ -51,27 +47,19 @@ There are no extra cards, replacement draws, stakes, coins, powers or artificial
 
 **Example:** the required rank is Queen. You play two cards and claim “2 Queens.” Two Queens is honest; a Queen and a King is a bluff. If someone calls BLUFF, those two cards open and the losing side takes every card in the pile. Once the turn is settled, the next required rank is King. A random Cat Chaos reaction after the play gives no evidence about either card.
 
-### Live shuffle and pickup
+### Private multiplayer
 
-There is no hosted dealer. Players register separate identity and encryption keys, then each privately permutes and re-randomizes the full encrypted deck. A circuit checks every shuffle is a permutation of exactly the original 52 cards. Each participant then removes their encryption layer from other players' assigned cards; each recipient's layer remains. The recipient opens their own hand locally.
+Players jointly shuffle and re-randomize an encrypted 52-card deck. Each shuffle proves a permutation of the original deck. Each player then removes their encryption layer from the other players' assigned cards, leaving each recipient's layer intact. Each player opens only their own hand locally; there is no hosted dealer.
 
-Setup needs one shuffle and one deal transaction per player, after room creation, joins and the host's start. On a challenged pickup, each contributor returns all pile cards still encrypted under their key in a single re-encryption proof. Cards already encrypted for the recipient need no extra transfer. Only the recipient opens their newly received pile cards; other contributors do not receive that new plaintext hand. The next turn starts after the pickup is complete.
+Setup requires a shuffle and a deal-share transaction from each player. On a challenged pickup, relevant contributors privately re-encrypt their pile cards for the recipient. Play resumes when the pickup finishes. All required contributors must remain online; this version cannot force an absent player to open or transfer cards.
 
-**Cooperation limit:** everyone must remain available for setup, opening a challenged play and returning their contributed pile cards. An absent or malicious player can stall the room. There is no timeout that labels silence a proved lie. Browser key recovery and disconnect recovery remain release limitations.
+### Cat Chaos and presentation
 
-### Interface and performance
+Each new face-down play triggers a **random 1.2-second cat reaction**. Selection reads no cards, ranks or truthfulness; matching memes are coincidences. Reactions are local to each viewer, may repeat, respect mute/reduced-motion settings and never delay BLUFF or change a transaction.
 
-The table centers the required rank, the public claim and the pile at risk. Your hand is a selectable rank-sorted grid; opponents show only counts. History records declarations, responses and challenge results. Original cat meme images and short recorded reactions are self-hosted, with a coordinated light/dark theme, mute and animation controls. Reduced-motion preferences are respected.
+The UI shows your hand, opponents' counts, the required rank, pile size and public history. All 52 card faces download together as one catalog, so image requests do not identify your private cards. Real cat meme images and recorded reactions are self-hosted with light/dark, mute and motion controls.
 
-**Cat Chaos:** each newly observed face-down play gets a random 1.2-second cat reaction from the existing meme/sound collection. Selection never reads cards, ranks or truthfulness; any matching meme is coincidence. Reactions are local to each viewer, can repeat, respect mute/reduced-motion settings, and never delay a response or change a transaction. The actual cards and challenge proofs remain the source of truth.
-
-All **52 card faces download together as one catalog**, including in live mode. The server therefore receives no image request tied to an individual private card. Source bytes are preserved; [media credits](public/media-credits.json) list all 52 origins. No generated cat imagery is used.
-
-Practice does not load the Midnight proving runtime. Live circuits load on demand; their keys are cached and the next relevant circuit is prefetched. Ordinary plays move owned encrypted slots without re-shuffling the deck. Private shuffle, opening and transfer proofs are substantially larger than play/pass proofs. The UI reports actual proof, wallet, submission and confirmation stages, not a simulated success.
-
-A fresh local proof-server 8.1.0 run produced proofs for all ten circuit types: ordinary play/pass/call took approximately **0.8–1.1 seconds**, start-round about **4.9 seconds**, and the heavier shuffle, deal, reveal and transfer operations approximately **6–20 seconds**. These are single-machine synthetic-state measurements, excluding downloads, wallet balancing and chain confirmation. The fixed public card encodings reduce the start-round proving key from about 21 MB to 11 MB. The prover used several GB of memory; repeated runs across multiple contract builds exhausted a 3.5 GB Docker VM, so plan memory headroom and restart after changing builds. A 512 MB free service is not a validated host for this protocol.
-
-**No live speed guarantee:** proof generation, Lace balancing and network confirmation still take time. V4's complete live latency has not yet been measured. The protocol and generated proving material are more substantial than V3; a small free hosted prover may be insufficient.
+Practice needs no proving runtime. Live play caches and prefetches circuit assets, and shows actual proof, wallet, submission and confirmation stages. Proof generation and confirmation still take time; full live latency is not yet measured. Large shuffle/deal proofs need more prover memory than ordinary plays.
 
 ## Privacy Model
 
@@ -81,15 +69,15 @@ A fresh local proof-server 8.1.0 run produced proofs for all ten circuit types: 
 
 ## Privacy Claim
 
-An observer can see who acts, how many cards move and which opaque slots move. Before a challenge, ciphertexts do not publish their ranks. A challenge deliberately discloses **all actual cards from that play**, whether the claim was true or false. Previous reveals and slot continuity allow memory, tracking and deduction. Public counts can also narrow possible hands; the game does not promise to hide information logically implied by play.
+Observers see declarations, quantities, responses and encrypted-slot movements. A challenge reveals **all cards from that play**, whether the claim was true or false. Other cards stay encrypted, but previous reveals, slot tracking and public counts can support deductions.
 
-**Two-player deduction:** with all 52 cards dealt between two players, each starting hand is the complement of the other. A player can therefore infer the opponent’s initial hand even though the app never decrypts or sends it to them. Which encrypted slots correspond to those cards, and which cards were played face down, remain hidden until disclosed or deduced. With three or four players, the unknown cards are distributed across multiple hands; collusion can still remove that uncertainty.
+**Two-player deduction:** when all 52 cards are dealt between two players, each can infer the other's initial hand as its complement. The chosen face-down cards and their encrypted-slot identities remain hidden until revealed or deduced. Three or four players add uncertainty; collusion can reduce it.
 
-The joint shuffle uses ElGamal-style encryption over Midnight's Jubjub operations. Privacy relies on the cryptographic assumptions, private keys and at least one honest, unpredictable shuffle contribution. The client uses cryptographic randomness and rejection-sampled Fisher–Yates; the circuit proves a valid permutation, **not that a participant chose their randomness honestly**. Colluding players can share their hands. The protocol has not received an independent security audit.
+The joint shuffle uses ElGamal-style encryption over Midnight's Jubjub operations. Privacy depends on private keys and at least one honest, unpredictable shuffle contribution. The circuit proves a valid permutation, not honest randomness. The protocol has not received an independent security audit.
 
-**A prover sees private inputs.** A hosted prover receives table secrets needed by its circuits. If everyone uses one service, that operator could reconstruct the whole deck or impersonate seats. For privacy from a proving service, run a compatible prover on your own device. A localhost bridge that forwards requests to Render is still remote proving. V4 intentionally defaults to Lace's provider and does not inherit V3's hosted-prover environment variable; explicitly setting `VITE_CLASSIC_PROOF_SERVER_URL` opts into that trust.
+**A remote prover sees private inputs**, including table keys. A shared prover could reconstruct the deck or impersonate seats. Use a compatible prover on your own device for privacy from the proving service. A localhost bridge forwarding to a hosted service still uses remote proving. V4 defaults to Lace's prover; `VITE_CLASSIC_PROOF_SERVER_URL` explicitly selects another provider.
 
-Only the local player's key is used to decrypt their hand in live UI state. Opponent ciphertexts are public but their plaintext hands are never sent through a game API or logged. Someone with access to the browser profile can read the saved private key. Keep the same browser, wallet and site origin; deleting browser data can make participation unrecoverable. A card catalog is public artwork, not a list of dealt cards.
+Keep the same wallet, browser profile and site address for an existing hand. Private keys are stored locally; clearing browser data or switching origins can make participation unrecoverable. Anyone with access to that browser profile can read them. The live UI decrypts only the local player's hand, and no game API or log exposes opponents' plaintext hands.
 
 ## Tech Stack
 
@@ -101,15 +89,6 @@ Only the local player's key is used to decrypt their hand in live UI state. Oppo
 | Client | Midnight.js 4.1.1, Compact runtime 0.16 |
 | Tests | Node test runner via tsx; real compiled-circuit simulation |
 | CI / hosting | GitHub Actions / Vercel |
-
-| Responsibility | File |
-| --- | --- |
-| V4 ledger, shuffle, deal, play and pickup | [`contracts/cat-bluff52.compact`](contracts/cat-bluff52.compact) |
-| Practice rules and restricted bot views | [`src/game/classic-rules.ts`](src/game/classic-rules.ts) |
-| V4 Midnight adapter and private key recovery | [`src/midnight/classic52.ts`](src/midnight/classic52.ts) |
-| Confirmed table polling and wallet actions | [`src/hooks/useClassic52.ts`](src/hooks/useClassic52.ts) |
-| New table inside the existing app shell | [`src/components/ClassicGame.tsx`](src/components/ClassicGame.tsx) |
-| Preserved V3 implementation | `contracts/cat-bluff.compact`, `src/midnight/cat-bluff.ts`, existing table in `src/App.tsx` |
 
 ## Prerequisites
 
@@ -160,27 +139,15 @@ npm run typecheck:deploy
 npm run check
 ```
 
-The current suite has **95 passing tests**. The earlier [test output screenshot](screenshots/classic52-tests.png) shows 79 tests before the additional wallet recovery, submission and Cat Chaos checks. Tests cover full 2/3/4-player joint deals, 52 unique physical cards, inability to decrypt another player's cards with one's own key, invalid permutations and openings, ownership, turn order, whole-pile pickup, private re-encryption, final claims and rematches. Practice simulations check conservation throughout long games and expose only each bot's own hand. Earlier contract regression tests remain included.
+The current suite has **95 passing tests**, covering 2/3/4-player deals, card conservation, private ownership, invalid shuffles/openings, turns, pile transfers, final claims, rematches, wallet recovery and Cat Chaos. The [test screenshot](screenshots/classic52-tests.png) records an earlier 79-test run.
 
-For an optional real local-prover benchmark, run a compatible proof server on port 6301, then:
-
-```bash
-npm run benchmark:proof
-# Optional local endpoint override:
-CLASSIC_BENCHMARK_PROVER=http://127.0.0.1:6301 npm run benchmark:proof
-```
-
-The benchmark creates synthetic keys, proves all ten circuit types against locally constructed state, and prints timings only. It never submits a transaction or uses a wallet. It is separate from CI and rejects remote prover URLs.
-
-These tests execute compiled circuits locally. They do **not** by themselves prove that a live prover accepted a transaction or that two Lace wallets completed a game. Browser checks separately exercise card selection, gameplay, themes, media, accessibility, mobile layout and missing-wallet errors.
+Tests execute compiled circuits locally; they do not establish a completed multi-wallet Preprod game. For an optional synthetic-state proof benchmark with a compatible local prover on port 6301, run `npm run benchmark:proof`. It submits no transactions and excludes wallet/network latency.
 
 ## CI/CD
 
-[CI](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and pinned Compact, runs `npm ci`, compiles V3 and V4, executes tests, builds the production app and typechecks the existing deployment CLI. The title badge tracks `main`; inspect the release PR's checks for branch-specific validation.
+[CI](.github/workflows/ci.yml) runs on pushes to `main` and pull requests. It installs Node 22 and pinned Compact, installs dependencies, compiles the branch's contracts, tests, builds the app and typechecks the deployment CLI. The title badge tracks `main`; [PR #4](https://github.com/ashuujha/cat-bluff/pull/4) validates Classic 52.
 
-Vercel runs `npm run build:vercel`: install the pinned compiler when needed, compile V4, then typecheck and build. Large V4 keys and ZKIR are generated during builds rather than committed. `scripts/copy-zk-assets.mjs` copies them to `/classic52/`; legacy proving assets keep their original URLs. A clean checkout needs `npm run compile` before `npm run dev` or `npm run build`.
-
-Keep V3's environment variable for old rooms, add V4's separate address after verifying its deployment, and test a preview before promotion. Do not promote a build as a working V4 multiplayer release until the new address and full wallet flow have been verified.
+Vercel builds the preview with `npm run build:vercel`. V4 proving keys and ZKIR are generated during builds and copied to `/classic52/`. A clean checkout needs `npm run compile` before running the app. Production promotion awaits a complete verified multiplayer round.
 
 ## Product Proposal
 
@@ -188,20 +155,14 @@ See [PROPOSAL.md](PROPOSAL.md) for product/users, Midnight rationale, data model
 
 ## Demo Video
 
-A new Cat Bluff Classic 52 video remains pending. Show two real profiles: connect, create/invite/join, private shuffle/deal, a face-down multi-card claim, Cat Chaos, BLUFF!, opening and whole-pile pickup. Include a real confirmed receipt, passing tests and the CI run. The video must demonstrate this card game and its current rules.
+The Classic 52 video is pending. Show connect → invite/join → shuffle/deal → face-down claim → Cat Chaos → BLUFF → opening/pile pickup, with a confirmed receipt and passing tests.
 
 ## Submission Checklist
 
-- ✓ Public repository and implementation documentation.
-- ✓ Classic 52 contract compiles; local rule and compiled-circuit tests pass.
-- ✓ CI workflow and badge included; release checks must pass before promotion.
-- ✓ Existing V3 Preprod address retained for earlier rooms.
-- ✓ New V4 Preprod deployment/address; schema and all ten verifier keys checked on-chain.
-- ✗ Complete live multiplayer verification.
-- ✗ Verified Classic 52 production release.
+- ✓ Public repository, docs, CI, 95 passing tests, verified V4 address and more than 15 meaningful commits.
+- ✗ Complete live multiplayer verification and Classic 52 production promotion.
 - ✗ Current game demo video.
 - ✗ Dedicated product X profile linked here.
-- ✓ Repository already exceeds 15 meaningful commits; no artificial commit padding.
 
 ## Media Credits
 
